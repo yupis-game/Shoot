@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>알까기</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;overflow:hidden;background:#453526;color:#f3e3b3;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;-webkit-user-select:none;user-select:none}
+  #wrap{position:fixed;inset:0;background:#453526}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  #bar{position:fixed;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:3px;justify-content:center;align-items:center;pointer-events:none}
+  #bar>*{pointer-events:auto}
+  #zm{margin-left:6px}
+  #zv{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:30px;font-size:12px;background:rgba(24,16,10,.78);border:1px solid rgba(243,227,179,.4)}
+  #msg{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);padding:8px 20px;background:rgba(24,16,10,.85);border:1px solid rgba(243,227,179,.4);font-size:15px;display:none;white-space:nowrap}
+  button{font:inherit;font-size:12px;line-height:1;height:30px;padding:0 9px;border:1px solid rgba(243,227,179,.4);background:rgba(24,16,10,.78);color:#f3e3b3;border-radius:0;cursor:pointer;letter-spacing:.02em}
+  button:active{background:#f3e3b3;color:#1d140c}
+  button:disabled{opacity:.35}
+
+  /* ---------- 로비/설정 패널 ---------- */
+  #panel{position:fixed;inset:0;z-index:10;background:rgba(14,10,6,.8);display:none;align-items:center;justify-content:center;padding:24px}
+  #panel.show{display:flex}
+  #card{width:min(300px,100%);background:#f1e8d6;color:#2a1d12;display:flex;flex-direction:column;padding:28px 24px 24px;box-shadow:0 16px 40px rgba(0,0,0,.45)}
+  #pTitle{margin:0;font-size:22px;font-weight:700;letter-spacing:.2em;text-align:center;padding-left:.2em}
+  #navRow{display:flex;align-items:center;justify-content:center;gap:4px;margin:16px 0 8px}
+  #navRow .v{min-width:92px;text-align:center;font-size:14px;font-weight:700;letter-spacing:.14em;padding-left:.14em}
+  #dots{display:flex;justify-content:center;gap:6px;margin-bottom:6px}
+  #dots i{width:5px;height:5px;background:rgba(42,29,18,.2)}
+  #dots i.on{background:#2a1d12}
+  #body{min-height:184px;max-height:calc(100vh - 310px);max-height:calc(100dvh - 310px);overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-start;border-top:1px solid rgba(42,29,18,.18)}
+  .cdc{display:block;width:44px;height:18px}
+  .cdx{padding:12px 0 10px;border-bottom:1px solid rgba(42,29,18,.12)}
+  .cdx .cn{display:flex;justify-content:space-between;align-items:center;font-size:13px;letter-spacing:.08em;margin-bottom:6px}
+  .cdx .cn span{font-size:11px;opacity:.5;letter-spacing:.04em}
+  .cdx img{display:block;width:100%;height:auto;background:#e6d3a3}
+  .cdx .cc{font-size:11px;opacity:.5;margin-top:5px;letter-spacing:.04em}
+  .cdx .none{height:96px;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:.4;background:#e6d3a3}
+  #rows{display:flex;flex-direction:column}
+  .row{display:flex;align-items:center;justify-content:space-between;min-height:46px;border-bottom:1px solid rgba(42,29,18,.12)}
+  .row .lb{font-size:13px;letter-spacing:.08em;opacity:.65}
+  .row .ctl{display:flex;align-items:center;gap:2px}
+  .row .v{min-width:70px;text-align:center;font-size:15px;font-weight:700}
+  #soon{display:none;flex:1;align-items:center;justify-content:center;font-size:14px;letter-spacing:.12em;opacity:.4;min-height:184px}
+  #card button{height:34px;width:34px;padding:0;font-size:18px;background:transparent;color:#2a1d12;border:0;opacity:.55}
+  #card button:active{background:transparent;opacity:1}
+  #card .txt{width:auto;height:30px;padding:0 12px;font-size:13px;letter-spacing:.04em;border:1px solid rgba(42,29,18,.35);opacity:1}
+  #card .txt:active{background:#2a1d12;color:#f1e8d6}
+  #card .txt:disabled{opacity:.4;background:transparent;color:#2a1d12}
+  #card #bGo{height:46px;width:100%;margin-top:20px;font-size:15px;letter-spacing:.12em;border:0;background:#2a1d12;color:#f1e8d6;opacity:1}
+  #card #bGo:active{background:#4a3320}
+</style>
+</head>
+<body>
+<div id="wrap"></div>
+<div id="msg"></div>
+<div id="bar">
+  <button id="bBack">빽</button>
+  <button id="bRe">판갈이</button>
+  <button id="bMenu">형식</button>
+  <button id="zm">−</button><span id="zv">100%</span><button id="zp">+</button>
+</div>
+<div id="panel"><div id="card">
+  <h2 id="pTitle">알까기</h2>
+  <div id="navRow"></div>
+  <div id="dots"></div>
+  <div id="body">
+    <div id="rows"></div>
+    <div id="soon">준비중</div>
+  </div>
+  <button id="bGo">게임 시작</button>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const R = 0.65, MAXDRAG = 6, VK = 0.125, MAXV = 0.75;
+let HALF = 9.5;                                          // 보스전에서는 14.25(1.5배)
+const SKINS = [
+  {name:'바둑', cap:'흑 · 백', k:'go', n:['흑','백'], c:[0x3b2415,0xf3e3b3]},
+  {name:'장기', cap:'한 · 초', k:'jg', n:['한','초'], c:[0xc81e1e,0x1a8a30], ch:['漢','楚']},
+  {name:'체스', cap:'킹 · 룩 · 비숍 · 폰 (백 / 흑)', k:'ch', n:['백','흑'], c:[0xeee6d8,0x3a312c]}
+];
+const LAYS = ['일렬','직접 세팅'];
+const hex = n => '#'+n.toString(16).padStart(6,'0');
+let skin = 0, vsCom = true, soundOn = true, bright = 1;
+let turn = 0, state = 'aim', stones = [], drag = null, audio = null, noiseBuf = null, gid = 0;
+let inLobby = true, modeDirty = false;
+let bphi = 0, tphi = 0, bz = 0, tz = 0, bom = 0, bvel = 0, pom = 0, pbv = 0;
+let hist = [], intro = null, throwing = [], zoomT = 1, zoomC = 1, introZ = 0, ending = false, aiT = 120, aiFirst = false;
+let dragBoard = null, dragFloor = false, count = 7, layout = 0, placeTeam = 0, placeLog = [];
+
+/* ---------- 3D 기본 ---------- */
+const wrap = document.getElementById('wrap');
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+wrap.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x453526);
+const camera = new THREE.PerspectiveCamera(50,1,0.1,800);
+const CAM_Y = 28, CAM_Z = 17.5;      // 이전과 같은 각도, 판 전체가 보이는 거리
+let fitK = 1;
+let rot = null;
+
+const amb = new THREE.AmbientLight(0xffffff,0.49);
+scene.add(amb);
+const sun = new THREE.DirectionalLight(0xffffff,0.52);
+sun.position.set(6,18,9);            // 높이를 높게 → 그림자 길이 짧게
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+const sc = sun.shadow.camera; sc.left = -18; sc.right = 18; sc.top = 18; sc.bottom = -18; sc.near = 1; sc.far = 60;
+sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.02;
+scene.add(sun); scene.add(sun.target);
+function setBright(v){                 // 밝기 설정 (100% = 기본)
+  bright = Math.max(0.5,Math.min(1.5,Math.round(v*10)/10));
+  amb.intensity = 0.49*bright; sun.intensity = 0.52*bright;
+}
+
+/* ---------- 바둑판 ---------- */
+function boardTexture(){
+  const s = 1024, c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0,0,s,s);
+  grad.addColorStop(0,'#ffe27a'); grad.addColorStop(1,'#fbd458');
+  g.fillStyle = grad; g.fillRect(0,0,s,s);
+  g.strokeStyle = 'rgba(190,130,30,.14)'; g.lineWidth = 2;
+  for(let i=0;i<40;i++){ const y = Math.random()*s; g.beginPath(); g.moveTo(0,y); g.lineTo(s,y+(Math.random()*20-10)); g.stroke(); }
+  const u = i => (0.5 + i)/19*s;
+  g.strokeStyle = '#6b4510'; g.lineWidth = 2;
+  for(let i=0;i<19;i++){
+    g.beginPath(); g.moveTo(u(i),u(0)); g.lineTo(u(i),u(18)); g.stroke();
+    g.beginPath(); g.moveTo(u(0),u(i)); g.lineTo(u(18),u(i)); g.stroke();
+  }
+  g.lineWidth = 4; g.strokeRect(u(0),u(0),u(18)-u(0),u(18)-u(0));
+  g.fillStyle = '#3a2208';
+  [3,9,15].forEach(a=>[3,9,15].forEach(b=>{g.beginPath();g.arc(u(a),u(b),5,0,7);g.fill();}));
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t;
+}
+const sideMat = new THREE.MeshLambertMaterial({color:0xb07a35});
+const topMat = new THREE.MeshLambertMaterial({map:boardTexture()});
+const board = new THREE.Mesh(new THREE.BoxGeometry(19,1,19),[sideMat,sideMat,topMat,sideMat,sideMat,sideMat]);
+board.position.y = -0.5; board.castShadow = true; board.receiveShadow = true;
+scene.add(board);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(500,500).rotateX(-Math.PI/2),new THREE.MeshLambertMaterial({color:0x4a3825}));
+floor.position.y = -6; floor.receiveShadow = true; scene.add(floor);
+const stoneG = new THREE.Group(); scene.add(stoneG);
+
+/* ---------- 말 ---------- */
+const capCanvas = [0,1].map(()=>{const c=document.createElement('canvas');c.width=c.height=256;return c;});
+const capTex = capCanvas.map(c=>{ const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t; });
+const sideM = [0,1].map(()=>new THREE.MeshStandardMaterial({roughness:.8}));
+const topM = capTex.map(t=>new THREE.MeshStandardMaterial({map:t,roughness:.8}));
+const botM = [0,1].map(()=>new THREE.MeshStandardMaterial({roughness:.8}));
+function drawCap(i,color){                              // 바둑알 윗면
+  const c = capCanvas[i], g = c.getContext('2d');
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,256,256);
+  g.save(); g.scale(2,2);
+  g.fillStyle = hex(color); g.fillRect(0,0,128,128);
+  for(let k=0,r=5;r<60;r+=3.4,k++){
+    g.strokeStyle = k%2 ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.10)'; g.lineWidth = 1.6;
+    g.beginPath(); g.arc(64+(i?3:-3),64,r,0,7); g.stroke();
+  }
+  g.strokeStyle = 'rgba(255,255,255,.10)'; g.lineWidth = 3; g.beginPath(); g.arc(64,64,59,0,7); g.stroke();
+  g.strokeStyle = 'rgba(0,0,0,.22)'; g.lineWidth = 3; g.beginPath(); g.arc(64,64,63,0,7); g.stroke();
+  g.restore();
+  capTex[i].needsUpdate = true;
+}
+function octPath(g,rad){                                // 8각형 (옆면이 위/아래/좌/우를 향함)
+  g.beginPath();
+  for(let k=0;k<8;k++){
+    const th = Math.PI/8+k*Math.PI/4;
+    const x = 128+rad*Math.cos(th), y = 128-rad*Math.sin(th);
+    k ? g.lineTo(x,y) : g.moveTo(x,y);
+  }
+  g.closePath();
+}
+function drawJanggi(i,color,ch){                        // 장기알 윗면: 테두리 + 크림색 면 + 글자
+  const c = capCanvas[i], g = c.getContext('2d');
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,256,256);
+  g.fillStyle = hex(color); octPath(g,128); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.18)'; octPath(g,125); g.fill();
+  g.fillStyle = hex(color); octPath(g,122); g.fill();
+  g.fillStyle = '#f3e6cc'; octPath(g,111); g.fill();
+  g.save(); g.translate(128,134); g.rotate(-Math.PI/2);   // 윗면 UV 방향 보정(화면에서 글자가 똑바로 보이게)
+  g.fillStyle = hex(color); g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = 'bold 128px "Noto Serif CJK KR","Noto Serif KR","Noto Sans CJK KR","Noto Sans KR","Malgun Gothic",serif';
+  g.fillText(ch,0,0);
+  g.restore();
+  capTex[i].needsUpdate = true;
+}
+const stoneGeo = new THREE.CylinderGeometry(R,R*0.96,0.3,40);
+const jgGeo = new THREE.CylinderGeometry(R*1.06,R*1.0,0.3,8,1,false,Math.PI/8);
+
+/* ---------- 체스말 (스탠턴 스타일: 둥근 받침 + 선반으로 깎은 몸통 + 머리) ---------- */
+const PK = ['king','rook','bishop','pawn','pawn','pawn','pawn'];   // 한 편 알 순서대로 배정
+const pieceM = [0,1].map(()=>new THREE.MeshStandardMaterial({roughness:.42,metalness:.02,side:THREE.DoubleSide}));
+function flatPart(g){ g = g.index ? g.toNonIndexed() : g; g.computeVertexNormals(); return g; }   // 각진 면
+function smoothPart(g){ return g.index ? g.toNonIndexed() : g; }                                 // 둥근 면
+function latheGeo(pts,seg){                                   // 회전체: 모서리는 또렷하게, 완만한 곡선은 부드럽게
+  seg = seg||36;
+  const N = [];
+  for(let i=0;i<pts.length-1;i++){ const dr = pts[i+1][0]-pts[i][0], dy = pts[i+1][1]-pts[i][1], l = Math.hypot(dr,dy)||1; N.push([dy/l,-dr/l]); }
+  const vn = (i,end)=>{
+    const n = N[i], o = N[end ? i+1 : i-1]; if(!o) return n;
+    if(n[0]*o[0]+n[1]*o[1]>0.8){ const x = n[0]+o[0], y = n[1]+o[1], l = Math.hypot(x,y)||1; return [x/l,y/l]; }
+    return n;
+  };
+  const pos = [], nor = [];
+  const V = (P,n,ph)=>({x:P[0]*Math.sin(ph),y:P[1],z:P[0]*Math.cos(ph),nx:n[0]*Math.sin(ph),ny:n[1],nz:n[0]*Math.cos(ph)});
+  const tri = (p,q,r)=>{
+    const e1x = q.x-p.x, e1y = q.y-p.y, e1z = q.z-p.z, e2x = r.x-p.x, e2y = r.y-p.y, e2z = r.z-p.z;
+    const cx = e1y*e2z-e1z*e2y, cy = e1z*e2x-e1x*e2z, cz = e1x*e2y-e1y*e2x;
+    if(cx*(p.nx+q.nx+r.nx)+cy*(p.ny+q.ny+r.ny)+cz*(p.nz+q.nz+r.nz)<0){ const t = q; q = r; r = t; }   // 법선 방향에 맞게 면 방향 정리
+    [p,q,r].forEach(v=>{ pos.push(v.x,v.y,v.z); nor.push(v.nx,v.ny,v.nz); });
+  };
+  for(let i=0;i<pts.length-1;i++){
+    const A = pts[i], B = pts[i+1], nA = vn(i,0), nB = vn(i,1);
+    if(A[0]===0 && B[0]===0) continue;
+    for(let k=0;k<seg;k++){
+      const p0 = k/seg*Math.PI*2, p1 = (k+1)/seg*Math.PI*2;
+      const a = V(A,nA,p0), b = V(A,nA,p1), c = V(B,nB,p1), d = V(B,nB,p0);
+      tri(a,b,d); tri(c,d,b);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos),3));
+  g.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(nor),3));
+  return g;
+}
+function arc(cy,rad,t0,t1,n){ const o = []; for(let i=0;i<=n;i++){ const t = t0+(t1-t0)*i/n; o.push([rad*Math.sin(t),cy-rad*Math.cos(t)]); } return o; }
+function ball(r,x,y,z){ const g = new THREE.SphereGeometry(r,16,12); g.translate(x,y,z); return smoothPart(g); }
+function box(w,h,d,x,y,z,ry){ const g = new THREE.BoxGeometry(w,h,d); g.translate(x,y,z); if(ry) g.rotateY(ry); return flatPart(g); }
+function extrude(pts,depth,bev){
+  const sh = new THREE.Shape(); pts.forEach((p,i)=>{ if(i) sh.lineTo(p[0],p[1]); else sh.moveTo(p[0],p[1]); });
+  const g = new THREE.ExtrudeGeometry(sh,{depth:depth,bevelEnabled:true,bevelThickness:bev,bevelSize:bev,bevelSegments:2});
+  g.translate(0,0,-depth/2); return smoothPart(g);
+}
+function mergeParts(list){
+  let n = 0; list.forEach(g=>{ n += g.attributes.position.count; });
+  const pos = new Float32Array(n*3), nor = new Float32Array(n*3); let o = 0;
+  list.forEach(g=>{ pos.set(g.attributes.position.array,o*3); nor.set(g.attributes.normal.array,o*3); o += g.attributes.position.count; });
+  const m = new THREE.BufferGeometry();
+  m.setAttribute('position',new THREE.BufferAttribute(pos,3)); m.setAttribute('normal',new THREE.BufferAttribute(nor,3));
+  m.addGroup(0,n,0); m.translate(0,-0.15,0); m.computeBoundingSphere();   // 받침 바닥이 알 바닥과 같은 높이
+  return m;
+}
+const BASE = [[0,0],[.58,0],[.62,.04],[.62,.14],[.58,.2],[.54,.22],[.54,.27],[.46,.34],[.4,.42],[.36,.52]];   // 둥근 받침
+function buildPiece(k){
+  const P = [];
+  if(k==='pawn'){
+    P.push(latheGeo(BASE.concat([[.31,.62],[.26,.78],[.22,.96],[.2,1.08],[.2,1.1],[.3,1.12],[.33,1.16],[.33,1.2],[.3,1.24],[.2,1.27],[.2,1.29]],arc(1.5,.28,.78,Math.PI,14))));
+  } else if(k==='rook'){
+    P.push(latheGeo(BASE.concat([[.31,.62],[.28,.8],[.27,1.2],[.28,1.42],[.36,1.45],[.42,1.52],[.47,1.58],[.47,1.8],[0,1.8]])));
+    for(let i=0;i<8;i++) P.push(box(.2,.22,.17,0,1.91,.385,i*Math.PI/4));
+  } else if(k==='bishop'){
+    P.push(latheGeo(BASE.concat([[.31,.62],[.25,.85],[.21,1.1],[.19,1.25],[.19,1.27],[.3,1.29],[.33,1.33],[.33,1.37],[.29,1.41],[.2,1.44],
+      [.27,1.52],[.3,1.65],[.3,1.78],[.27,1.92],[.2,2.04],[.11,2.14],[.04,2.2],[0,2.22]])), ball(.085,0,2.26,0));
+  } else if(k==='queen'){
+    P.push(latheGeo(BASE.concat([[.31,.62],[.25,.88],[.21,1.2],[.19,1.4],[.19,1.42],[.3,1.44],[.34,1.48],[.34,1.52],[.3,1.56],[.2,1.6],
+      [.26,1.66],[.34,1.78],[.42,1.92],[.45,2.02],[.41,2.06],[.34,2.04],[0,1.98]])), ball(.13,0,2.1,0));
+    for(let i=0;i<8;i++){ const a = i*Math.PI/4; P.push(ball(.07,Math.sin(a)*.42,2.06,Math.cos(a)*.42)); }
+  } else if(k==='king'){
+    P.push(latheGeo(BASE.concat([[.31,.62],[.25,.9],[.21,1.3],[.19,1.55],[.19,1.57],[.31,1.59],[.35,1.63],[.35,1.67],[.31,1.71],[.22,1.75],
+      [.28,1.82],[.34,1.95],[.37,2.08],[.34,2.14],[.26,2.17],[0,2.17]])), box(.14,.5,.14,0,2.42,0), box(.44,.13,.14,0,2.47,0));
+  } else {                                            // knight: 말 머리 옆모습을 입체로 뽑음 (+x 방향을 바라봄)
+    P.push(latheGeo(BASE.concat([[.32,.7],[.32,.92],[.36,1.0],[.36,1.04],[0,1.04]])),
+      extrude([[-.3,.98],[-.34,1.3],[-.26,1.7],[-.15,2.12],[-.07,2.4],[.02,2.17],[.1,2.15],[.42,2.0],[.72,1.78],[.9,1.63],[.92,1.5],[.76,1.45],[.56,1.55],[.38,1.6],[.3,1.42],[.36,1.2],[.4,.98]],.3,.05),
+      extrude([[-.28,1.0],[-.5,1.35],[-.45,1.8],[-.28,2.2],[-.15,2.3],[-.18,1.8],[-.22,1.4],[-.2,1.0]],.16,.03));
+  }
+  return mergeParts(P);
+}
+const chessGeos = {}; PK.forEach(k=>{ if(!chessGeos[k]) chessGeos[k] = buildPiece(k); });
+
+/* ---------- 체스말 기울어짐/쓰러짐/구르기 ---------- */
+const TH = {king:.6,rook:.65,bishop:.62,pawn:.75,queen:.58,knight:.6};      // 이 각도(rad)를 넘으면 쓰러짐
+const TC = {king:.26,rook:.24,bishop:.24,pawn:.16,queen:.24,knight:.24};    // 충격에 얼마나 잘 기우는지(키 큰 말일수록 큼)
+const _tq1 = new THREE.Quaternion(), _tq2 = new THREE.Quaternion(), _ax = new THREE.Vector3(), _ay = new THREE.Vector3(0,1,0);
+function applyTilt(st,th,dx,dz,roll){
+  _ax.set(dz,0,-dx); _tq1.setFromAxisAngle(_ax,th);
+  if(roll){ _tq2.setFromAxisAngle(_ay,roll); _tq1.multiply(_tq2); }
+  st.quaternion.copy(_tq1);
+}
+function kick(u,dvx,dvz){                              // 맞거나 발사될 때: 가속의 반대 방향으로 윗부분이 쏠림
+  if(SKINS[skin].k!=='ch' || u.falling || u.lying) return;
+  if(u.tx===undefined){ u.tx = u.tz = u.twx = u.twz = 0; }
+  const k = (TC[u.pk]||.2)*(0.6+Math.random()*0.8);
+  u.twx -= k*dvx; u.twz -= k*dvz;
+  const m = Math.hypot(u.twx,u.twz); if(m>0.4){ u.twx *= 0.4/m; u.twz *= 0.4/m; }
+}
+function tiltStep(st){
+  const u = st.userData; if(u.falling) return;
+  if(u.lying){                                         // 누운 말: 속도에 따라 굴러감
+    u.roll = (u.roll||0)+(u.vz*u.hx-u.vx*u.hz)/0.45;
+    applyTilt(st,Math.PI/2,u.hx,u.hz,u.roll); u.py = 0.63; return;
+  }
+  if(u.tx===undefined) return;
+  let th = Math.hypot(u.tx,u.tz);
+  if(th<0.003 && Math.hypot(u.twx,u.twz)<0.003){
+    if(th>0 || u.py!==0.16){ u.tx = u.tz = u.twx = u.twz = 0; st.quaternion.set(0,0,0,1); u.py = 0.16; }
+    return;
+  }
+  if(th>=(TH[u.pk]||.6)){                              // 무게중심이 받침 밖으로 넘어감 → 쓰러지는 중
+    u.twx += 0.012*u.tx/th; u.twz += 0.012*u.tz/th;
+  } else {
+    u.twx -= 0.06*u.tx; u.twz -= 0.06*u.tz;            // 흔들리다 다시 선다
+    u.twx *= 0.93; u.twz *= 0.93;
+  }
+  u.tx += u.twx; u.tz += u.twz;
+  th = Math.hypot(u.tx,u.tz);
+  if(th>=Math.PI/2){                                   // 완전히 누움
+    u.hx = u.tx/th; u.hz = u.tz/th; u.lying = true; u.roll = 0; u.tx = u.hx*Math.PI/2; u.tz = u.hz*Math.PI/2;
+    u.twx = u.twz = 0; u.py = 0.63; applyTilt(st,Math.PI/2,u.hx,u.hz,0);
+    thud(500,0.25,0.12); clack(0.5); return;
+  }
+  applyTilt(st,th,u.tx/th,u.tz/th,0);
+  u.py = 0.01+0.62*Math.sin(th)+0.15*Math.cos(th);     // 받침 모서리를 축으로 기울면 받침 중심이 올라감
+}
+
+/* ---------- 도감: 스킨별 모양 (배경 없이, 5초에 한 바퀴 도는 작은 3D 미리보기) ---------- */
+let cdx = null, codexCanv = [], codexRaf = 0;
+const CW = 132, CH = 54;
+function buildCodex(){
+  if(cdx) return cdx.ok;
+  cdx = {ok:false,groups:[],cams:[],vars:[],step:[]};
+  const prev = skin;
+  try{
+    const pr = new THREE.WebGLRenderer({antialias:true,alpha:true});
+    pr.setPixelRatio(1); pr.setSize(CW,CH,false); pr.setClearColor(0x000000,0);
+    const ps = new THREE.Scene();
+    ps.add(new THREE.AmbientLight(0xffffff,0.7));
+    const dl = new THREE.DirectionalLight(0xffffff,0.8); dl.position.set(2,5,4); ps.add(dl);
+    SKINS.forEach((S,i)=>{
+      skin = i; applySkin(true);                        // 이 스킨의 텍스처를 그린 뒤 복사해서 따로 보관
+      const mats = [0,1].map(t=>{
+        if(S.k==='ch') return [new THREE.MeshStandardMaterial({color:S.c[t],roughness:.42,metalness:.02,side:THREE.DoubleSide})];
+        const c2 = document.createElement('canvas'); c2.width = c2.height = 256; c2.getContext('2d').drawImage(capCanvas[t],0,0);
+        const tex = new THREE.CanvasTexture(c2);
+        return [new THREE.MeshStandardMaterial({color:S.c[t],roughness:.8}),
+                new THREE.MeshStandardMaterial({map:tex,roughness:.8}),
+                S.k==='jg' ? new THREE.MeshStandardMaterial({color:0xf3e6cc,roughness:.8}) : new THREE.MeshStandardMaterial({map:tex,roughness:.8})];
+      });
+      const g = new THREE.Group(); g.visible = false; ps.add(g);
+      const vars = [];
+      const add = (t,geo)=>{ const m = new THREE.Mesh(geo,mats[t]); m.position.set(0,0.16,0); m.visible = false; g.add(m); vars.push(m); };
+      const cam = new THREE.PerspectiveCamera(30,CW/CH,0.1,100);
+      const ch = S.k==='ch';
+      if(ch){                                           // 8가지(말 4종 × 색 2) 를 2.5초마다 하나씩, 말과 색이 같이 바뀜
+        for(let n=0;n<8;n++) add((n+Math.floor(n/4))%2,chessGeos[['king','rook','bishop','pawn'][n%4]]);
+      } else {                                          // 알 하나, 2.5초마다 색이 바뀜
+        const geo = S.k==='jg' ? jgGeo : stoneGeo;
+        add(0,geo); add(1,geo);
+      }
+      const tg = ch ? [0,1.2,0] : [0,0.1,0], D = ch ? 4.4 : 2.6;
+      cam.position.set(tg[0],tg[1]+D*Math.sin(Math.PI/4),tg[2]+D*Math.cos(Math.PI/4));   // 위에서 45°로 내려다봄
+      cam.lookAt(tg[0],tg[1],tg[2]);
+      cdx.vars.push(vars); cdx.step.push(2500);
+      cdx.groups.push(g); cdx.cams.push(cam);
+    });
+    cdx.pr = pr; cdx.ps = ps; cdx.ok = true;
+  }catch(e){ cdx.ok = false; }
+  skin = prev; applySkin(true);                          // 원래 스킨 텍스처로 복구
+  return cdx.ok;
+}
+function renderCodex(ts){
+  const ang = (ts%5000)/5000*Math.PI*2;                  // 5초에 360°
+  cdx.groups.forEach((g,i)=>{
+    cdx.groups.forEach((o,j)=>{ o.visible = i===j; });
+    const vs = cdx.vars[i], idx = Math.floor(ts/cdx.step[i])%vs.length;
+    vs.forEach((m,k)=>{ m.visible = k===idx; m.rotation.y = ang; });
+    cdx.pr.render(cdx.ps,cdx.cams[i]);
+    const cv = codexCanv[i];
+    if(cv){ const cx = cv.getContext('2d'); cx.clearRect(0,0,CW,CH); cx.drawImage(cdx.pr.domElement,0,0); }
+  });
+}
+function startCodexLoop(){
+  if(codexRaf || !cdx || !cdx.ok) return;
+  const frame = ts=>{
+    if(!panel.classList.contains('show') || PAGES[page]!=='도감'){ codexRaf = 0; return; }
+    renderCodex(ts); codexRaf = requestAnimationFrame(frame);
+  };
+  codexRaf = requestAnimationFrame(frame);
+}
+function geoFor(pk){ const k = SKINS[skin].k; return k==='jg' ? jgGeo : k==='ch' ? chessGeos[pk] : stoneGeo; }
+function matsFor(t){ return SKINS[skin].k==='ch' ? [pieceM[t]] : [sideM[t],topM[t],botM[t]]; }
+
+function restyle(s){                                    // 스킨 변경 시 이미 있는 알도 모양/색 갱신
+  const u = s.userData, t = u.team;
+  s.geometry = geoFor(u.pk); delete u.rh; delete u.rt;
+  delete u.tx; delete u.tz; delete u.twx; delete u.twz; delete u.lying; delete u.py; delete u.roll;
+  if(!u.falling && !u.grp){ s.quaternion.set(0,0,0,1); s.position.y = 0.16; }
+  if(u.grp || u.fade){
+    const ms = matsFor(t).map(m=>m.clone());
+    if(u.fade) ms.forEach(m=>{ m.transparent = true; m.opacity = u.alpha; });
+    s.material = ms;
+  } else s.material = matsFor(t);
+}
+function applySkin(preview){
+  const S = SKINS[skin], jg = S.k==='jg';
+  [0,1].forEach(i=>{
+    sideM[i].color.setHex(S.c[i]);
+    botM[i].color.setHex(jg ? 0xf3e6cc : 0xffffff);
+    botM[i].map = jg ? null : capTex[i]; botM[i].needsUpdate = true;
+    pieceM[i].color.setHex(S.c[i]);
+    if(jg) drawJanggi(i,S.c[i],S.ch[i]); else if(S.k==='go') drawCap(i,S.c[i]);
+  });
+  if(preview) return;                                   // 도감 미리보기: 게임 중인 알은 건드리지 않음
+  allStones().forEach(restyle);
+  updateUI();
+}
+function makeStone(team,x,z,pk0){
+  const pk = pk0 || PK[Math.floor(Math.random()*PK.length)];   // 말 종류는 랜덤 배정
+  const m = new THREE.Mesh(geoFor(pk),matsFor(team));
+  m.castShadow = true; m.receiveShadow = true;
+  m.position.set(x,0.16,z);
+  m.userData = {team,pk,vx:0,vz:0,vy:0,falling:false,w:new THREE.Vector3()};
+  stoneG.add(m); stones.push(m);
+  return m;
+}
+
+/* ---------- 화살표 + 하얀 보조선 ---------- */
+const aimGroup = new THREE.Group(); aimGroup.visible = false; scene.add(aimGroup);
+const arrowGeo = new THREE.BufferGeometry();
+const arrowPos = new Float32Array(27);
+arrowGeo.setAttribute('position',new THREE.BufferAttribute(arrowPos,3));
+const arrowMesh = new THREE.Mesh(arrowGeo,new THREE.MeshBasicMaterial({color:0xe0352f,side:THREE.DoubleSide}));
+arrowMesh.frustumCulled = false;
+const guide = new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2).translate(0.5,0,0),
+  new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));
+guide.rotation.y = Math.PI; guide.position.y = -0.01;
+aimGroup.add(guide); aimGroup.add(arrowMesh);
+function setArrow(L){
+  const hl = Math.min(0.5,L*0.4), hw = 0.17, w0 = 0.08, w1 = 0.03, sx = L-hl;
+  arrowPos.set([0,0,-w0, sx,0,-w1, sx,0,w1,  0,0,-w0, sx,0,w1, 0,0,w0,  sx,0,-hw, L,0,0, sx,0,hw]);
+  arrowGeo.attributes.position.needsUpdate = true;
+}
+
+/* ---------- 배치 (일렬 / 직접 세팅) ---------- */
+function gap(m){ return m>1 ? Math.max(1.4,4.6-0.34*(m-1)) : 0; }   // 한 줄에 많을수록 좁게, 적을수록 넓게
+function layoutPos(team){
+  const n = count, sz = team===0 ? 1 : -1, out = [];
+  if(n>=9){                                             // 9개부터 2줄
+    const a = 7, b = n-7;
+    for(let r=0;r<2;r++){
+      const m = r ? b : a, z = (r ? 4.8 : 6.9)*sz;
+      for(let i=0;i<m;i++) out.push([(i-(m-1)/2)*gap(m),z]);
+    }
+    return out;
+  }
+  const sp = gap(n);      // 알이 많으면 간격이 좁아짐(최대 14개까지 겹치지 않음)
+  for(let i=0;i<n;i++){
+    const x = (i-(n-1)/2)*sp;
+    const z = 6.4*sz;
+    out.push([x,z]);
+  }
+  return out;
+}
+function randomPlace(team){                             // AI 알은 겹치지 않는 랜덤 위치
+  const lim = HALF-R-0.4;
+  for(let i=0;i<count;i++){
+    let x = 0, z = 0, ok = false;
+    for(let t=0;t<300&&!ok;t++){
+      x = (Math.random()*2-1)*lim; z = -(R+0.05)-Math.random()*(lim-R-0.05);   // AI(백)는 자기 진영(절반) 안에서만
+      ok = stones.every(s=>Math.hypot(s.position.x-x,s.position.z-z)>=2*R+0.25);
+    }
+    makeStone(team,x,z);
+  }
+}
+function teamCount(t){ return stones.filter(s=>s.userData.team===t).length; }
+function beginPlay(){
+  state = 'aim'; placeLog = []; hist = []; updateUI();
+  if(vsCom && aiFirst){ const g = gid; setTimeout(()=>{ if(g===gid) comMove(); },900); }
+}
+function placeAt(x,z){
+  if(Math.abs(x)>HALF||Math.abs(z)>HALF) return;
+  const lim = HALF-R-0.15;
+  x = Math.max(-lim,Math.min(lim,x)); z = Math.max(-lim,Math.min(lim,z));
+  if(teamCount(placeTeam)>=count) return;
+  if(stones.some(s=>Math.hypot(s.position.x-x,s.position.z-z)<2*R+0.02)) return;   // 겹치면 못 놓음
+  placeLog.push(makeStone(placeTeam,x,z)); clack(0.3);
+  if(teamCount(placeTeam)===count){
+    if(placeTeam===0){
+      if(vsCom){ randomPlace(1); beginPlay(); }        // AI전: 흑 배치 후 AI 알은 랜덤
+      else placeTeam = 1;                               // 2인: 이어서 백 배치
+    } else beginPlay();
+  }
+  updateUI();
+}
+function removeStone(s){
+  stoneG.remove(s);
+  const i = stones.indexOf(s); if(i>=0) stones.splice(i,1);
+  const j = placeLog.indexOf(s); if(j>=0) placeLog.splice(j,1);
+  updateUI();
+}
+
+/* ---------- 게임 흐름 ---------- */
+function setup(){                      // 새 판 세팅 + 앞으로 밀려 들어오는 등장
+  gid++;
+  bphi = tphi = 0; bz = tz = 0; bom = bvel = pom = pbv = 0;
+  board.rotation.y = 0; board.position.z = 0; board.visible = true;
+  if(layout!==1){
+    layoutPos(0).forEach(p=>makeStone(0,p[0],p[1]));
+    layoutPos(1).forEach(p=>makeStone(1,p[0],p[1]));
+  }
+  hist = []; turn = 0; ending = false; aiT = 120; drag = null; placeLog = [];
+  if(layout===1){ state = 'place'; placeTeam = 0; }
+  else {
+    state = 'aim';
+    if(vsCom && aiFirst){ const g = gid; setTimeout(()=>{ if(g===gid) comMove(); },2200); }
+  }
+  aimGroup.visible = false;
+  intro = {t:0}; introZ = 36; stoneG.position.set(0,0,introZ); board.position.y = -0.5;   // 뒤쪽에서 앞으로 밀어 등장
+  updateUI();
+}
+function reset(){
+  stones.forEach(s=>stoneG.remove(s)); stones = [];
+  throwing.forEach(removeThrown); throwing = [];
+  setup();
+}
+function newBoard(){                   // 판갈이: 지금 판을 뒤로 던지고 새 판 등장
+  if(state==='swap' || intro) return;
+  gid++; state = 'swap'; drag = null; aimGroup.visible = false; intro = null; placeLog = [];
+  launchBoard();
+  board.visible = false; stoneG.position.y = 0; board.position.y = -0.5;
+  thud(700,0.35,0.12);
+  const g = gid;
+  setTimeout(()=>{ if(g===gid) setup(); },800);
+  updateUI();
+}
+function alive(t){ return stones.filter(s=>s.userData.team===t && !s.userData.falling).length; }
+function updateUI(){
+  const n = SKINS[skin].n, m = document.getElementById('msg');
+  if(state==='over'){ m.textContent = alive(0)===0 && alive(1)===0 ? '무승부' : (alive(0)>0 ? n[0] : n[1])+' 승리!'; m.style.display = 'block'; }
+  else if(state==='place'){ m.textContent = n[placeTeam]+' 배치 '+teamCount(placeTeam)+'/'+count+' · 눌러서 놓기'; m.style.display = 'block'; }
+  else m.style.display = 'none';
+  document.getElementById('bBack').disabled = state==='place' ? placeLog.length===0 : hist.length===0;
+}
+
+/* ---------- 빽 (이전 상황으로) ---------- */
+function snap(){
+  return {turn, st: stones.map(s=>{
+    const u = s.userData, P = s.position;
+    if(u.falling) return {t:u.team,pk:u.pk,f:1,x:P.x,y:P.y,z:P.z,q:s.quaternion.toArray()};
+    const l = toLocal(P.x,P.z); return {t:u.team,pk:u.pk,x:l[0],z:l[1]};
+  })};
+}
+function undo(){
+  if(intro || state==='swap') return;
+  if(state==='place'){                                  // 배치 중에는 마지막에 놓은 알을 회수
+    const s = placeLog.pop(); if(!s) return;
+    placeTeam = s.userData.team;
+    stoneG.remove(s); const i = stones.indexOf(s); if(i>=0) stones.splice(i,1);
+    updateUI(); return;
+  }
+  if(!hist.length) return;
+  let sn = hist.pop();
+  // 한 수만 되돌림
+  gid++; drag = null; aimGroup.visible = false;
+  stones.forEach(s=>stoneG.remove(s)); stones = [];
+  bphi = tphi = bz = tz = 0; bom = bvel = pom = pbv = 0; board.rotation.y = 0; board.position.z = 0;
+  sn.st.forEach(o=>{
+    const m = makeStone(o.t,o.x,o.z,o.pk);
+    if(o.f){ m.userData.falling = true; m.position.set(o.x,o.y,o.z); m.quaternion.fromArray(o.q); }
+  });
+  turn = sn.turn; state = 'aim'; ending = false; updateUI();
+}
+
+/* ---------- 효과음 ---------- */
+function ensureAudio(){
+  if(!audio){
+    try{
+      audio = new (window.AudioContext||window.webkitAudioContext)();
+      noiseBuf = audio.createBuffer(1,Math.floor(audio.sampleRate*0.12),audio.sampleRate);
+      const d = noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+      impBuf = audio.createBuffer(1,Math.floor(audio.sampleRate*0.012),audio.sampleRate);
+      const d2 = impBuf.getChannelData(0); for(let i=0;i<d2.length;i++) d2[i] = (Math.random()*2-1)*Math.exp(-i/(audio.sampleRate*0.0025));
+      comp = audio.createDynamicsCompressor(); comp.connect(audio.destination);
+    }catch(e){}
+  }
+  if(audio && audio.state==='suspended') audio.resume();
+}
+let lastClack = 0, impBuf = null, comp = null;
+function clack(p){                                     // 돌 부딪히는 소리: 세기에 따라 크기/밝기가 달라짐
+  if(!soundOn||!audio) return;
+  const t = audio.currentTime; if(t-lastClack<0.02) return; lastClack = t;
+  const v = Math.max(0.05,Math.min(1,p));
+  const out = audio.createGain(); out.gain.value = 0.1+0.75*Math.pow(v,0.8); out.connect(comp);
+  const n = audio.createBufferSource(); n.buffer = impBuf;                    // 1) 닿는 순간의 짧고 날카로운 '딱'
+  const hp = audio.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1400+2600*v;
+  const ng = audio.createGain(); ng.gain.value = 0.9;
+  n.connect(hp); hp.connect(ng); ng.connect(out); n.start(t);
+  const base = 2300*(0.92+Math.random()*0.16);                                 // 2) 돌의 짧은 울림(살짝 다른 음정)
+  [[1,1,0.045],[1.62,0.55,0.03],[2.4,0.3,0.02],[0.42,0.5,0.06]].forEach(m=>{
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = 'sine'; o.frequency.value = base*m[0];
+    g.gain.setValueAtTime(m[1]*0.5,t); g.gain.exponentialRampToValueAtTime(0.0001,t+m[2]*(0.8+v*0.6));
+    o.connect(g); g.connect(out); o.start(t); o.stop(t+m[2]*1.5+0.02);
+  });
+  const lo = audio.createOscillator(), lg = audio.createGain();                // 3) 판이 울리는 낮은 '톡'
+  lo.type = 'sine'; lo.frequency.setValueAtTime(220,t); lo.frequency.exponentialRampToValueAtTime(120,t+0.05);
+  lg.gain.setValueAtTime(0.28*v,t); lg.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
+  lo.connect(lg); lg.connect(out); lo.start(t); lo.stop(t+0.07);
+}
+function thud(low,vol,dur){
+  if(!soundOn||!audio) return;
+  const t = audio.currentTime;
+  const src = audio.createBufferSource(); src.buffer = noiseBuf;
+  const lp = audio.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = low;
+  const g = audio.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  src.connect(lp); lp.connect(g); g.connect(audio.destination); src.start(t); src.stop(t+dur+0.02);
+}
+
+function tap(){                                          // 버튼 소리: 묵직한 '툭' + 짧은 클릭
+  if(!soundOn||!audio) return;
+  const t = audio.currentTime, out = comp||audio.destination;
+  const o = audio.createOscillator(), g = audio.createGain();                  // 낮은 몸통
+  o.type = 'sine'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(120,t+0.09);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.5,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+0.13);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t+0.14);
+  const c = audio.createOscillator(), cg = audio.createGain();                 // 눌리는 순간의 클릭
+  c.type = 'triangle'; c.frequency.setValueAtTime(900,t); c.frequency.exponentialRampToValueAtTime(450,t+0.03);
+  cg.gain.setValueAtTime(0.0001,t); cg.gain.exponentialRampToValueAtTime(0.12,t+0.002); cg.gain.exponentialRampToValueAtTime(0.0001,t+0.04);
+  c.connect(cg); cg.connect(out); c.start(t); c.stop(t+0.05);
+}
+document.addEventListener('click',e=>{ const bt = e.target.closest && e.target.closest('button'); if(bt){ ensureAudio(); if(!bt.closest('#bar')) tap(); } },true);   // 인게임 하단 버튼은 소리 없음
+
+/* ---------- 물리 ---------- */
+const G = 0.02, FLOOR = -6, FA = 0.011, DR = 0.99, SUB = 3, STICK = 0.03, FLING = 0.45;
+const IDQ = new THREE.Quaternion(), dq = new THREE.Quaternion(), tv = new THREE.Vector3();
+const _fu = new THREE.Vector3(), _ft = new THREE.Vector3(), _fq = new THREE.Quaternion();
+function flatten(m){                                   // 바닥에 닿으면 가까운 쪽(앞면/뒷면)으로 평평하게 눕힘
+  const u = m.userData;
+  _fu.set(0,1,0).applyQuaternion(m.quaternion);
+  if(SKINS[skin].k==='ch'){                            // 체스말: 거의 서 있으면 서고, 아니면 옆으로 쓰러져 눕는다
+    if(u.rt===undefined){
+      if(_fu.y>0.8) u.rt = 0.16;
+      else{ u.rt = 0.62; const a = Math.hypot(_fu.x,_fu.z)>0.15 ? Math.atan2(_fu.z,_fu.x) : Math.random()*6.283; u.hx = Math.cos(a); u.hz = Math.sin(a); }
+    }
+    if(u.rh===undefined) u.rh = 0.16;
+    u.rh += (u.rt-u.rh)*0.2;
+    if(u.rt>0.5){ const hl = Math.hypot(_fu.x,_fu.z); if(hl>0.15){ u.hx = _fu.x/hl; u.hz = _fu.z/hl; } _ft.set(u.hx,0,u.hz); }
+    else _ft.set(0,1,0);
+    _fq.setFromUnitVectors(_fu,_ft).multiply(m.quaternion);
+    m.quaternion.slerp(_fq,0.2);
+    return;
+  }
+  _ft.set(0,_fu.y>=0?1:-1,0);
+  _fq.setFromUnitVectors(_fu,_ft).multiply(m.quaternion);
+  m.quaternion.slerp(_fq,0.2);
+}
+function toLocal(x,z){ const rx = x, rz = z-bz, c = Math.cos(bphi), s = Math.sin(bphi); return [rx*c-rz*s, rx*s+rz*c]; }
+function startFall(st,lx,lz,c,s){
+  const u = st.userData; u.falling = true; u.seq = ++seqN;
+  const ox = Math.abs(lx)-HALF, oz = Math.abs(lz)-HALF;
+  const nx = ox>oz ? Math.sign(lx) : 0, nz = ox>oz ? 0 : Math.sign(lz);
+  const wx = nx*c+nz*s, wz = -nx*s+nz*c;
+  const flips = Math.random()<0.5 ? 0 : 1;                           // 앞면/뒷면이 반반 나오게: 떨어지는 동안 0번 또는 반 바퀴 회전
+  const turn = flips*Math.PI+(Math.random()-0.5)*0.8;                 // 약간의 기울기 오차
+  u.w.set(wz,0,-wx).normalize().multiplyScalar(turn/25);              // 낙하 시간 약 25프레임
+  u.w.x += (Math.random()-0.5)*0.01; u.w.z += (Math.random()-0.5)*0.01;
+  u.vy = 0;
+  thud(500,0.3,0.15);
+  updateUI();
+  if(state==='aim' && (alive(0)===0||alive(1)===0)) ending = true;   // 마지막 알들이 다 멈출 때까지 기다렸다가 승패 결정(무승부 가능)
+}
+function physics(){
+  const gp = tphi-bphi, gz = tz-bz;
+  const wantW = Math.sign(gp)*Math.min(Math.abs(gp)*0.35,Math.sqrt(2*0.008*Math.abs(gp)),0.2);
+  bom += Math.max(-0.008,Math.min(0.008,wantW-bom));
+  const wantV = Math.sign(gz)*Math.min(Math.abs(gz)*(rot?0.35:0.04),Math.sqrt(2*0.1*Math.abs(gz)),0.3);
+  bvel += Math.max(-0.1,Math.min(0.1,wantV-bvel));
+  const om = bom, bv = bvel;
+  const dr = Math.pow(DR,1/SUB), fa = FA/SUB;
+  for(let k=0;k<SUB;k++){
+    const fk = (k+1)/SUB, omk = pom+(om-pom)*fk, bvk = pbv+(bv-pbv)*fk;
+    bphi += omk/SUB; bz += bvk/SUB;
+    const c = Math.cos(bphi), s = Math.sin(bphi);
+    for(const st of stones){
+      const u = st.userData, P = st.position;
+      P.x += u.vx/SUB; P.z += u.vz/SUB;
+      const rx = P.x, rz = P.z-bz, lx = rx*c-rz*s, lz = rx*s+rz*c;
+      if(!u.falling){
+        const bvx = rz*omk, bvz = -rx*omk+bvk;
+        const ex = u.vx-bvx, ez = u.vz-bvz, m = Math.hypot(ex,ez);
+        const rr = Math.hypot(rx,rz), thr = STICK*(1+(Math.max(1,rr/5)-1)*Math.min(1,Math.abs(omk)/0.05));
+        if(m>0){
+          if(m<thr){ u.vx = bvx; u.vz = bvz; }
+          else {
+            const bs = Math.hypot(bvx,bvz), m2 = m*dr-(u.lying ? fa*0.45 : fa)*(1+Math.min(3,bs/0.15)-0.25*Math.max(0,1-bs/0.15));   // 판이 가만히 있을 때(슈팅) 마찰만 25% 줄임
+            u.vx = bvx+ex*m2/m; u.vz = bvz+ez*m2/m;
+            const sp = Math.hypot(u.vx,u.vz);
+            if(bs>0.1 && sp>FLING){ u.vx *= FLING/sp; u.vz *= FLING/sp; }
+          }
+        }
+        if(Math.abs(lx)>HALF||Math.abs(lz)>HALF) startFall(st,lx,lz,c,s);
+      } else {
+        u.vy -= G/SUB; P.y += u.vy/SUB;
+        if(P.y<0.17 && P.y>-1.2){
+          const cx = Math.max(-HALF,Math.min(HALF,lx)), cz = Math.max(-HALF,Math.min(HALF,lz));
+          const dx = lx-cx, dz = lz-cz, d = Math.hypot(dx,dz);
+          if(d<R && d>1e-4){
+            const nx = dx/d, nz = dz/d, wx = nx*c+nz*s, wz = -nx*s+nz*c, push = (R-d)*0.12;
+            P.x += wx*push; P.z += wz*push;
+            const vn = u.vx*wx+u.vz*wz; if(vn<0){ u.vx -= vn*wx; u.vz -= vn*wz; }
+          }
+        }
+        if(P.y<=FLOOR+(u.rh||0.16)){
+          P.y = FLOOR+(u.rh||0.16);
+          if(u.vy<-0.04) thud(300,Math.min(0.4,-u.vy*1.2),0.1);
+          u.vy = -u.vy*0.35; if(u.vy<0.03) u.vy = 0;
+          if(u.slide){ const sp = Math.hypot(u.vx,u.vz); if(sp>0){ const k = Math.max(0,sp*Math.pow(0.985,1/SUB)-0.0275/SUB)/sp; u.vx *= k; u.vz *= k; } u.w.multiplyScalar(0.8); }   // 쏜 바닥 알은 미끄러짐
+          else { const f = Math.pow(0.85,1/SUB); u.vx *= f; u.vz *= f; u.w.multiplyScalar(0.8); }
+        }
+      }
+    }
+    for(let i=0;i<stones.length;i++){
+      const a = stones[i], ua = a.userData;
+      for(let j=i+1;j<stones.length;j++){
+        const b = stones[j], ub = b.userData;
+        let dx = b.position.x-a.position.x, dy = b.position.y-a.position.y, dz = b.position.z-a.position.z;
+        if(dy>2*R||dy<-2*R) continue;
+        const d = Math.hypot(dx,dy,dz);
+        if(d<2*R && d>1e-4){
+          dx/=d; dy/=d; dz/=d;
+          const ov = (2*R-d)/2;
+          a.position.x -= dx*ov; a.position.y -= dy*ov; a.position.z -= dz*ov;
+          b.position.x += dx*ov; b.position.y += dy*ov; b.position.z += dz*ov;
+          const rel = (ua.vx-ub.vx)*dx+(ua.vy-ub.vy)*dy+(ua.vz-ub.vz)*dz;
+          if(rel>0){
+            const e = (!ua.falling&&!ub.falling) ? 0.3 : 0.5, j2 = rel*(1+e)/2;   // 맞는 알은 약 0.8배, 때린 알은 조금 남아 밀려나감(무승부 가능)
+            ua.vx -= j2*dx; ua.vy -= j2*dy; ua.vz -= j2*dz;
+            ub.vx += j2*dx; ub.vy += j2*dy; ub.vz += j2*dz;
+            if(rel>0.02){ clack(rel/MAXV); kick(ua,-j2*dx,-j2*dz); kick(ub,j2*dx,j2*dz); }
+          }
+        }
+      }
+    }
+    for(const st of stones){ const u = st.userData; if(!u.falling){ st.position.y = u.py||0.16; u.vy = 0; } }
+  }
+  pom = om; pbv = bv;
+  if(SKINS[skin].k==='ch') for(const st of stones) tiltStep(st);
+  board.rotation.y = bphi; board.position.z = bz+introZ;
+  let moving = false;
+  for(const st of stones){
+    const u = st.userData;
+    if(u.falling){
+      if(st.position.y<=FLOOR+(u.rh||0.16)+0.01) flatten(st);
+      else { const ang = u.w.length(); if(ang>1e-5){ tv.copy(u.w).normalize(); dq.setFromAxisAngle(tv,ang); st.quaternion.premultiply(dq); } }
+    } else {
+      const rx = st.position.x, rz = st.position.z-bz;
+      if(Math.hypot(u.vx-rz*om,u.vz-(-rx*om+bv))>0.004) moving = true;
+    }
+  }
+  if(ending && state==='aim' && !moving){ state = 'over'; ending = false; updateUI(); clack(1); }
+}
+const tmpV = new THREE.Vector3(), bPlane = new THREE.Plane(new THREE.Vector3(0,1,0),0);
+function pickAt(e){                                     // 화면 위치 기준으로 가장 가까운 알(멀리 있어도, 바닥에 있어도, AI 알도)
+  if(ending || (state!=='aim'&&state!=='over')) return null;
+  const r = cv.getBoundingClientRect(), px = e.clientX-r.left, py = e.clientY-r.top;
+  let best = null, bd = 30;
+  for(const s of allStones()){
+    tmpV.copy(s.position); if(SKINS[skin].k==='ch' && !s.userData.falling && !s.userData.lying) tmpV.y += 0.8;
+    tmpV.project(camera);
+    if(tmpV.z>1) continue;
+    const d = Math.hypot((tmpV.x+1)/2*r.width-px,(1-tmpV.y)/2*r.height-py);
+    if(d<bd){ bd = d; best = s; }
+  }
+  return best;
+}
+function pickBoard(e){                                   // 떨어져 있는 판 선택(현재 판 뒤에 가려진 판은 제외)
+  const r = cv.getBoundingClientRect();
+  mouse.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(mouse,camera);
+  const hits = ray.intersectObjects(throwing.map(t=>t.mesh),false);
+  if(!hits.length) return null;
+  const mh = board.visible ? ray.intersectObject(board,false) : [];
+  if(mh.length && mh[0].distance<hits[0].distance) return null;
+  return throwing.find(t=>t.mesh===hits[0].object) || null;
+}
+function flickBoard(o,nx,nz,v){
+  const bx = nx*v, bz2 = nz*v;
+  tQi.copy(o.q).invert();
+  for(const s of o.stones){                             // 판 위에 있던 알은 같이 출발
+    tR.copy(s.position).sub(o.pos).applyQuaternion(tQi);
+    if(Math.abs(tR.x)<HALF && Math.abs(tR.z)<HALF && tR.y>-0.3){ s.userData.vx += bx-o.v.x; s.userData.vz += bz2-o.v.z; }
+  }
+  o.v.x = bx; o.v.z = bz2; o.sleep = false; o.rest = 0;
+  thud(700,0.3,0.1);
+}
+function shoot(s,vx,vz,p){
+  if(!s.userData.grp){ hist.push(snap()); if(hist.length>60) hist.shift(); }
+  kick(s.userData,vx-s.userData.vx,vz-s.userData.vz);
+  s.userData.vx = vx; s.userData.vz = vz; if(s.userData.falling) s.userData.slide = true;
+  if(s.userData.grp){ s.userData.grp.sleep = false; s.userData.grp.rest = 0; }
+  aimGroup.visible = false; thud(900,0.25*(0.4+p),0.06);
+  updateUI();
+}
+
+/* ---------- 컴퓨터 ---------- */
+function aiReply(){ const g = gid; setTimeout(()=>{ if(g===gid) comMove(); },500+Math.random()*500); }   // 플레이어가 날릴 때마다 한 번 반격
+function comMove(){
+  if(state!=='aim'||ending||intro) return;
+  const mine = stones.filter(s=>s.userData.team===1&&!s.userData.falling);
+  const foes = stones.filter(s=>s.userData.team===0&&!s.userData.falling);
+  let best = null, bs = -1e9;
+  for(const m of mine) for(const e of foes){
+    const d = Math.hypot(e.position.x-m.position.x,e.position.z-m.position.z);
+    const le = toLocal(e.position.x,e.position.z), lm = toLocal(m.position.x,m.position.z);
+    const edge = Math.max(Math.abs(le[0]),Math.abs(le[1]));
+    const myEdge = Math.max(Math.abs(lm[0]),Math.abs(lm[1]));
+    const sc = edge*1.2 - d*0.15 - myEdge*0.3 + Math.random()*2;
+    if(sc>bs){ bs = sc; best = {m,e,d}; }
+  }
+  if(!best) return;
+  const ang = Math.atan2(best.e.position.z-best.m.position.z,best.e.position.x-best.m.position.x)+(Math.random()-0.5)*0.12;
+  const v = Math.max(0.25,Math.min(MAXV,Math.sqrt(0.033*(best.d+5))));
+  shoot(best.m,Math.cos(ang)*v,Math.sin(ang)*v,v/MAXV);
+}
+
+/* ---------- 입력 ---------- */
+const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0,1,0),-0.16), mouse = new THREE.Vector2();
+const fplane = new THREE.Plane(new THREE.Vector3(0,1,0),-(FLOOR+0.16));   // 바닥(떨어진 알) 높이의 평면
+function worldPt(e,pl){
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(mouse,camera);
+  const p = new THREE.Vector3();
+  return ray.ray.intersectPlane(pl||plane,p) ? p : null;
+}
+const cv = renderer.domElement;
+cv.addEventListener('pointerdown',e=>{
+  ensureAudio();
+  if(intro || state==='swap') return;
+  if(state==='place'){                                  // 직접 세팅: 빈 곳을 누르면 놓기, 내 알을 누르면 회수
+    const p = worldPt(e); if(!p) return;
+    let hit = null;
+    for(const s of stones){
+      if(s.userData.team===placeTeam && Math.hypot(s.position.x-p.x,s.position.z-p.z)<R*1.1){ hit = s; break; }
+    }
+    if(hit) removeStone(hit); else placeAt(p.x,p.z);
+    return;
+  }
+  let best = pickAt(e);
+  if(best){ drag = best; dragFloor = !!best.userData.falling; dragBoard = null; bPlane.constant = -best.position.y; }
+  else if(!ending && (state==='aim'||state==='over') && (dragBoard = pickBoard(e))){ drag = dragBoard.mesh; dragFloor = false; bPlane.constant = -(drag.position.y+0.5); }
+  else { rot = {x:e.clientX,y:e.clientY,phi:tphi,z:tz}; }
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove',e=>{
+  if(rot){ tphi = rot.phi+(e.clientX-rot.x)*0.012; tz = Math.max(-3,Math.min(3,rot.z+(e.clientY-rot.y)*0.012)); return; }
+  if(!drag) return;
+  const p = worldPt(e,bPlane); if(!p) return;
+  const dx = drag.position.x-p.x, dz = drag.position.z-p.z;
+  const len = Math.hypot(dx,dz);
+  if(len<0.4){ aimGroup.visible = false; return; }
+  const l = Math.min(len,MAXDRAG);
+  aimGroup.position.set(drag.position.x,drag.position.y+(dragBoard?0.7:0.18),drag.position.z);
+  aimGroup.rotation.y = -Math.atan2(dz,dx);
+  guide.scale.set(l,1,0.06);
+  setArrow(1.1);
+  aimGroup.visible = true;
+});
+function release(e){
+  if(rot){ rot = null; tz = 0; }
+  if(!drag) return;
+  const p = worldPt(e,bPlane), s = drag; drag = null;
+  aimGroup.visible = false;
+  if(!p || (state!=='aim'&&state!=='over') || (s.userData.falling && !dragFloor)) return;
+  const dx = s.position.x-p.x, dz = s.position.z-p.z, len = Math.hypot(dx,dz);
+  if(len<0.5) return;
+  const l = Math.min(len,MAXDRAG), v = Math.min(MAXV*1.5,l*VK*1.5);               // 슈팅 세기 최대 1.5배
+  if(dragBoard) flickBoard(dragBoard,dx/len,dz/len,Math.min(0.6,l*0.1));
+  else shoot(s,dx/len*v,dz/len*v,v/(MAXV*1.5));
+  if(vsCom && !dragFloor && !dragBoard) aiReply();
+}
+cv.addEventListener('pointerup',release);
+cv.addEventListener('pointercancel',()=>{if(rot){rot=null;tz=0;}drag=null;aimGroup.visible=false;});
+
+/* ---------- 로비/설정 패널 ---------- */
+const panel = document.getElementById('panel');
+const rowsEl = document.getElementById('rows');
+function btn(parent,html,cls,fn){ const b = document.createElement('button'); b.innerHTML = html; if(cls) b.className = cls; b.onclick = fn; parent.appendChild(b); return b; }
+function addRow(label,val,fn){                           // 라벨 + < 값 > 한 줄
+  const r = document.createElement('div'); r.className = 'row';
+  const l = document.createElement('span'); l.className = 'lb'; l.textContent = label; r.appendChild(l);
+  const c = document.createElement('span'); c.className = 'ctl'; r.appendChild(c);
+  btn(c,'&lt;','',()=>fn(-1));
+  const v = document.createElement('span'); v.className = 'v'; v.textContent = val; c.appendChild(v);
+  btn(c,'&gt;','',()=>fn(1));
+  rowsEl.appendChild(r);
+}
+function addAction(label,text,fn){                       // 라벨 + 실행 버튼 한 줄
+  const r = document.createElement('div'); r.className = 'row';
+  const l = document.createElement('span'); l.className = 'lb'; l.textContent = label; r.appendChild(l);
+  btn(r,text,'txt',fn);
+  rowsEl.appendChild(r);
+}
+let page = 0; const PAGES = ['형식','상점','도감','도전과제','설정'];   // 도감/도전과제는 추후 추가
+function buildNav(){
+  const nr = document.getElementById('navRow'); nr.innerHTML = '';
+  btn(nr,'&lt;','',()=>{ page = (page+PAGES.length-1)%PAGES.length; buildPanel(); });
+  const v = document.createElement('span'); v.className = 'v'; v.textContent = PAGES[page]; nr.appendChild(v);
+  btn(nr,'&gt;','',()=>{ page = (page+1)%PAGES.length; buildPanel(); });
+  const dt = document.getElementById('dots'); dt.innerHTML = '';
+  PAGES.forEach((_,i)=>{ const d = document.createElement('i'); if(i===page) d.className = 'on'; dt.appendChild(d); });
+}
+function buildPanel(){
+  buildNav();
+  rowsEl.innerHTML = '';
+  const name = PAGES[page];
+  const has = name==='형식'||name==='상점'||name==='도감'||name==='설정';
+  rowsEl.style.display = has ? '' : 'none';
+  document.getElementById('soon').style.display = has ? 'none' : 'flex';
+  if(name==='형식'){
+    addRow('상대',vsCom?'AI':'친구',()=>{ vsCom = !vsCom; modeDirty = true; buildPanel(); });
+    if(vsCom) addRow('선공',aiFirst?'AI':'나',()=>{ aiFirst = !aiFirst; modeDirty = true; buildPanel(); });
+    addRow('알 개수',count+'개',d=>{ count = (count-1+d+14)%14+1; modeDirty = true; buildPanel(); });
+    addRow('배치',LAYS[layout],d=>{ layout = (layout+d+2)%2; modeDirty = true; buildPanel(); });
+  } else if(name==='상점'){
+    SKINS.forEach((S,i)=>{
+      const r = document.createElement('div'); r.className = 'row';
+      const l = document.createElement('span'); l.className = 'lb'; l.textContent = S.name; r.appendChild(l);
+      const b = btn(r,skin===i?'사용중':'사용','txt',()=>{ skin = i; applySkin(); buildPanel(); });
+      b.disabled = skin===i;
+      rowsEl.appendChild(r);
+    });
+  } else if(name==='도감'){
+    const ok = buildCodex();
+    codexCanv = [];
+    SKINS.forEach(S=>{
+      const r = document.createElement('div'); r.className = 'row';
+      const l = document.createElement('span'); l.className = 'lb'; l.textContent = S.name; r.appendChild(l);
+      if(ok){ const c = document.createElement('canvas'); c.width = CW; c.height = CH; c.className = 'cdc'; r.appendChild(c); codexCanv.push(c); }
+      else { const t = document.createElement('span'); t.className = 'lb'; t.textContent = '불러올 수 없어요'; r.appendChild(t); }
+      rowsEl.appendChild(r);
+    });
+    startCodexLoop();
+  } else if(name==='설정'){
+    addRow('소리',soundOn?'켬':'끔',()=>{ soundOn = !soundOn; if(soundOn){ ensureAudio(); clack(0.6); } buildPanel(); });
+    addRow('밝기',Math.round(bright*100)+'%',d=>{ setBright(bright+d*0.1); buildPanel(); });
+    addAction('초기화','기본값으로',()=>{ soundOn = true; setBright(1); buildPanel(); });
+  }
+}
+function openPanel(lobby){
+  inLobby = lobby; modeDirty = false;
+  page = 0;
+  document.getElementById('bGo').textContent = lobby ? '게임 시작' : '계속하기';
+  buildPanel(); panel.classList.add('show');
+}
+document.getElementById('bGo').onclick = ()=>{
+  ensureAudio();
+  panel.classList.remove('show');
+  if(inLobby || modeDirty) reset();
+};
+document.getElementById('bBack').onclick = undo;
+document.getElementById('bMenu').onclick = ()=>openPanel(false);
+document.getElementById('bRe').onclick = ()=>{ ensureAudio(); newBoard(); };
+
+/* ---------- 확대/축소 ---------- */
+function setZoom(z){
+  zoomT = Math.max(0.5,Math.min(2,z));
+  document.getElementById('zv').textContent = Math.round(zoomT*100)+'%';
+}
+document.getElementById('zm').onclick = ()=>setZoom(zoomT-0.25);
+document.getElementById('zp').onclick = ()=>setZoom(zoomT+0.25);
+
+function resize(){
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w,h,false); camera.aspect = w/h; camera.updateProjectionMatrix();
+  fitK = w<h ? h/w : 1;               // 세로 화면에서도 판 폭이 다 보이게 거리 보정
+}
+addEventListener('resize',resize);
+
+/* ---------- 던진 판 (강체 물리: 판도 말도 각자 움직임) ---------- */
+const TG = new THREE.Group(); scene.add(TG);
+const CORN = [];
+[-1,1].forEach(a=>[-1,1].forEach(b=>[-1,0].forEach(y=>CORN.push(new THREE.Vector3(a*HALF,y,b*HALF)))));
+const KI = 1/30, MU = 0.35;
+const tQi = new THREE.Quaternion(), tA = new THREE.Vector3(), tB = new THREE.Vector3(), tN = new THREE.Vector3(), tR = new THREE.Vector3(), tVt = new THREE.Vector3();
+let lastSide = 1, seqN = 0;
+function launchBoard(){
+  const mesh = board.clone();
+  mesh.material = mesh.material.map(m=>m.clone());
+  const o = {pos:new THREE.Vector3(0,0,bz), q:board.quaternion.clone(), v:new THREE.Vector3(), w:new THREE.Vector3(),
+             mesh, stones, alpha:1, fade:false, sleep:false, rest:0};
+  scene.add(mesh);
+  lastSide = -lastSide; const spread = lastSide*(0.25+Math.random()*0.5);                     // 매번 다른 방향(서로 안 겹치게 퍼짐)
+  const dx = Math.sin(spread), dz = -Math.cos(spread), sp = 0.5+Math.random()*0.3;   // -z = 화면 안쪽(보는 시점 반대) 방향
+  o.v.set(dx*sp,0.39+Math.random()*0.195,dz*sp);
+  const sw = (0.02+Math.random()*0.03)*(Math.random()<0.5?-1:1);
+  o.w.set(-dz*sw,(Math.random()-0.5)*0.08,dx*sw);
+  stones.forEach(s=>{
+    const u = s.userData;
+    s.material = s.material.map(m=>m.clone());
+    TG.add(s);
+    if(!u.falling){                                     // 판 위의 말은 판과 같은 속도로 출발
+      tR.copy(s.position).sub(o.pos); tA.crossVectors(o.w,tR).add(o.v);
+      u.vx = tA.x; u.vy = tA.y; u.vz = tA.z;
+    }
+    if(!u.falling) u.seq = ++seqN;
+    u.falling = true; u.onBoard = false; u.grp = o; u.w.set(0,0,0);
+  });
+  stones = [];
+  throwing.push(o);
+  const act = throwing.filter(t=>!t.fade);
+  if(act.length>3) act[0].fade = true;                 // 5개 넘으면 가장 오래된 판부터 페이드아웃
+}
+function removeThrown(o){
+  scene.remove(o.mesh); o.mesh.material.forEach(m=>m.dispose());
+  o.stones.forEach(s=>{ TG.remove(s); s.material.forEach(m=>m.dispose()); });
+}
+function stepThrown(o){
+  if(o.fade){
+    o.alpha -= 0.025;
+    if(o.alpha<=0){ removeThrown(o); throwing.splice(throwing.indexOf(o),1); return; }
+    const ms = o.mesh.material.slice(); o.stones.forEach(s=>s.material.forEach(m=>ms.push(m)));
+    ms.forEach(m=>{ m.transparent = true; m.opacity = o.alpha; });
+    if(o.alpha<0.3){ o.mesh.castShadow = false; o.stones.forEach(s=>{ s.castShadow = false; }); }
+  }
+  if(o.sleep) return;
+  const sub = SUB, L = o.stones;
+  for(let k=0;k<sub;k++){
+    // 판: 중력 + 회전 + 바닥 충돌(모서리마다 충격량)
+    o.v.y -= G/sub;
+    o.pos.addScaledVector(o.v,1/sub);
+    const wl = o.w.length();
+    if(wl>1e-7){ tA.copy(o.w).divideScalar(wl); dq.setFromAxisAngle(tA,wl/sub); o.q.premultiply(dq).normalize(); }
+    for(const c of CORN){
+      tR.copy(c).applyQuaternion(o.q);
+      const pen = FLOOR-(o.pos.y+tR.y);
+      if(pen>0){
+        o.pos.y += pen;
+        tA.crossVectors(o.w,tR).add(o.v);
+        if(tA.y<0){
+          const rn = tR.x*tR.x+tR.z*tR.z, e = tA.y<-0.05 ? 0.25 : 0;
+          const jn = -(1+e)*tA.y/(1+KI*rn);
+          o.v.y += jn; o.w.x -= KI*jn*tR.z; o.w.z += KI*jn*tR.x;
+          const tm = Math.hypot(tA.x,tA.z);
+          if(tm>1e-6){
+            const jt = Math.min(MU*jn,tm/(1+KI*tR.lengthSq()));
+            const fx = -tA.x/tm*jt, fz = -tA.z/tm*jt;
+            o.v.x += fx; o.v.z += fz;
+            o.w.x += KI*tR.y*fz; o.w.y += KI*(tR.z*fx-tR.x*fz); o.w.z -= KI*tR.y*fx;
+          }
+        }
+      }
+    }
+    boardSupport2(o);
+    const rest = o.touch || o.pos.y<-4.2;                 // 바닥/다른 판에 닿아 있을 때 잔떨림을 줄임
+    o.w.multiplyScalar(rest ? 0.985 : 0.9985);
+    if(rest) o.v.multiplyScalar(0.998);
+    o.touch = 0;
+    // 말: 중력 + 판 윗면 접촉(마찰로만 붙어 있음) + 바닥 + 말끼리 충돌
+    tQi.copy(o.q).invert();
+    tN.set(0,1,0).applyQuaternion(o.q);
+    for(const s of L){
+      const u = s.userData, P = s.position;
+      u.vy -= G/sub;
+      P.x += u.vx/sub; P.y += u.vy/sub; P.z += u.vz/sub;
+      tR.copy(P).sub(o.pos).applyQuaternion(tQi);
+      if(Math.abs(tR.x)<HALF && Math.abs(tR.z)<HALF && tR.y<0.16 && tR.y>-0.6){
+        P.addScaledVector(tN,0.16-tR.y);
+        tR.copy(P).sub(o.pos); tA.crossVectors(o.w,tR).add(o.v);
+        tB.set(u.vx-tA.x,u.vy-tA.y,u.vz-tA.z);
+        const vn = tB.dot(tN);
+        if(vn<0){
+          const jn = -(1+(vn<-0.05 ? 0.2 : 0))*vn;
+          tB.addScaledVector(tN,jn);
+          tVt.copy(tB).addScaledVector(tN,-tB.dot(tN));
+          const vt = tVt.length();
+          if(vt>1e-6) tB.addScaledVector(tVt,-Math.min(vt,MU*jn)/vt);
+          u.vx = tA.x+tB.x; u.vy = tA.y+tB.y; u.vz = tA.z+tB.z;
+        }
+        u.onBoard = true; u.w.copy(o.w);
+      }
+      if(P.y<=FLOOR+(u.rh||0.16)){
+        P.y = FLOOR+(u.rh||0.16);
+        if(u.vy<-0.08) thud(300,Math.min(0.3,-u.vy*1.2),0.1);
+        u.vy = -u.vy*0.35; if(u.vy<0.03) u.vy = 0;
+        if(u.slide){ const sp = Math.hypot(u.vx,u.vz); if(sp>0){ const k = Math.max(0,sp*Math.pow(0.985,1/sub)-0.0275/sub)/sp; u.vx *= k; u.vz *= k; } u.w.multiplyScalar(0.8); }
+        else { const f = Math.pow(0.85,1/sub); u.vx *= f; u.vz *= f; u.w.multiplyScalar(0.8); }
+      }
+    }
+    for(let i=0;i<L.length;i++){
+      const a = L[i], ua = a.userData;
+      for(let j=i+1;j<L.length;j++){
+        const b = L[j], ub = b.userData;
+        let dx = b.position.x-a.position.x, dy = b.position.y-a.position.y, dz = b.position.z-a.position.z;
+        if(dy>2*R||dy<-2*R) continue;
+        const d = Math.hypot(dx,dy,dz);
+        if(d<2*R && d>1e-4){
+          dx/=d; dy/=d; dz/=d;
+          const ov = (2*R-d)/2;
+          a.position.x -= dx*ov; a.position.y -= dy*ov; a.position.z -= dz*ov;
+          b.position.x += dx*ov; b.position.y += dy*ov; b.position.z += dz*ov;
+          const rel = (ua.vx-ub.vx)*dx+(ua.vy-ub.vy)*dy+(ua.vz-ub.vz)*dz;
+          if(rel>0){
+            const j2 = rel*0.75;
+            ua.vx -= j2*dx; ua.vy -= j2*dy; ua.vz -= j2*dz;
+            ub.vx += j2*dx; ub.vy += j2*dy; ub.vz += j2*dz;
+            if(rel>0.05) clack(rel/MAXV);
+          }
+        }
+      }
+    }
+  }
+  // 화면 반영
+  tR.set(0,-0.5,0).applyQuaternion(o.q);
+  o.mesh.position.copy(o.pos).add(tR); o.mesh.quaternion.copy(o.q);
+  let calm = o.v.length()<0.02 && o.w.length()<0.012;
+  for(const s of L){
+    const u = s.userData;
+    if(u.onBoard){ s.quaternion.copy(o.q); u.onBoard = false; }
+    else if(s.position.y<=FLOOR+(u.rh||0.16)+0.01) flatten(s);
+    else { const ang = u.w.length(); if(ang>1e-5){ tv.copy(u.w).normalize(); dq.setFromAxisAngle(tv,ang); s.quaternion.premultiply(dq); } }
+    if(Math.abs(u.vx)+Math.abs(u.vy)+Math.abs(u.vz)>=0.02) calm = false;
+  }
+  o.rest = calm ? o.rest+1 : 0;
+  if(o.rest>25){ o.sleep = true; o.v.set(0,0,0); o.w.set(0,0,0); }
+}
+
+/* ---------- 겹침 방지(판-판, 판-말, 말-말) + 바닥 말 정리 ---------- */
+let capT = 0;
+function allStones(){ let r = stones.slice(); throwing.forEach(o=>{ r = r.concat(o.stones); }); return r; }
+function axes(o){
+  const ex = tA.set(1,0,0).applyQuaternion(o.q), h1 = Math.hypot(ex.x,ex.z)||1, a0 = ex.x/h1, a1 = ex.z/h1;
+  const ez = tA.set(0,0,1).applyQuaternion(o.q), h2 = Math.hypot(ez.x,ez.z)||1;
+  return [a0,a1,ez.x/h2,ez.z/h2];
+}
+function moveBoard(o,dx,dz){
+  tQi.copy(o.q).invert();
+  for(const s of o.stones){                           // 판 위의 말은 함께 이동
+    tR.copy(s.position).sub(o.pos).applyQuaternion(tQi);
+    if(Math.abs(tR.x)<HALF+0.7 && Math.abs(tR.z)<HALF+0.7 && tR.y>-0.45 && tR.y<1.2){ s.position.x += dx; s.position.z += dz; }
+  }
+  o.pos.x += dx; o.pos.z += dz;
+  tR.set(0,-0.5,0).applyQuaternion(o.q);
+  o.mesh.position.copy(o.pos).add(tR);
+  o.v.x *= 0.7; o.v.z *= 0.7;
+}
+function sepBoards(a,b){                              // 판끼리 겹치면 옆으로 밀어냄(자는 판은 안 밀림)
+  if(a.sleep && b.sleep) return;
+  if(Math.abs(a.pos.y-b.pos.y)>1.2) return;
+  const dx = b.pos.x-a.pos.x, dz = b.pos.z-a.pos.z;
+  if(dx*dx+dz*dz>27*27) return;
+  const A = axes(a), B = axes(b);
+  let best = 1e9, nx = 0, nz = 0;
+  for(const c of [[A[0],A[1]],[A[2],A[3]],[B[0],B[1]],[B[2],B[3]]]){
+    const ra = HALF*(Math.abs(A[0]*c[0]+A[1]*c[1])+Math.abs(A[2]*c[0]+A[3]*c[1]));
+    const rb = HALF*(Math.abs(B[0]*c[0]+B[1]*c[1])+Math.abs(B[2]*c[0]+B[3]*c[1]));
+    const d = dx*c[0]+dz*c[1], ov = ra+rb-Math.abs(d);
+    if(ov<=0) return;
+    if(ov<best){ best = ov; nx = d<0 ? -c[0] : c[0]; nz = d<0 ? -c[1] : c[1]; }
+  }
+  best += 0.02;
+  if(a.sleep) moveBoard(b,nx*best,nz*best);
+  else if(b.sleep) moveBoard(a,-nx*best,-nz*best);
+  else { moveBoard(a,-nx*best/2,-nz*best/2); moveBoard(b,nx*best/2,nz*best/2); }
+}
+function boxPush(o,s){                                // 판에 말이 파고들면 밀어냄(tQi는 판의 역회전)
+  const u = s.userData, P = s.position;
+  tR.copy(P).sub(o.pos).applyQuaternion(tQi);
+  const ax = Math.abs(tR.x), az = Math.abs(tR.z), ly = tR.y;
+  if(ly>0.5 || ly<-1.6 || ax>=HALF+0.6 || az>=HALF+0.6) return;
+  if(ax<HALF && az<HALF && ly>-0.45){
+    if(u.grp===o) return;                             // 자기 판 위는 접촉 물리가 처리
+    tN.set(0,1,0).applyQuaternion(o.q); P.addScaledVector(tN,0.16-ly); if(u.vy<0) u.vy = 0;
+    return;
+  }
+  if(ax<HALF && az<HALF){                             // 판 밑에 깔린 말: 옆으로 튀지 않고 판이 말 위에 얹힘
+    const pen = ly+1.15;
+    if(pen>0.005){
+      nB.set(0,1,0).applyQuaternion(o.q);
+      o.pos.addScaledVector(nB,pen);
+      const vnb = o.v.dot(nB); if(vnb<0) o.v.addScaledVector(nB,-vnb);
+      tC.set(0,-0.5,0).applyQuaternion(o.q); o.mesh.position.copy(o.pos).add(tC);
+      if(pen>0.02){ o.sleep = false; o.rest = 0; }
+    }
+    return;
+  }
+  if(ly>0.1) return;
+  const px = HALF+0.6-ax, pz = HALF+0.6-az;
+  tVt.set(0,0,0);
+  if(px<pz) tVt.x = Math.sign(tR.x)||1; else tVt.z = Math.sign(tR.z)||1;
+  const d = Math.min(px,pz,0.8);
+  tVt.applyQuaternion(o.q);
+  P.addScaledVector(tVt,d);
+  const vn = u.vx*tVt.x+u.vy*tVt.y+u.vz*tVt.z;
+  if(vn<0.25){ const k = 0.25-vn; u.vx += k*tVt.x; u.vy += k*tVt.y; u.vz += k*tVt.z; }
+  if(d>0.02 && u.grp){ u.grp.sleep = false; u.grp.rest = 0; }
+}
+function crossStones(){                               // 서로 다른 판에서 떨어진 바닥 말끼리 충돌
+  const L = allStones().filter(s=>s.userData.falling && s.position.y<FLOOR+0.6);
+  for(let i=0;i<L.length;i++){
+    const a = L[i], ua = a.userData;
+    for(let j=i+1;j<L.length;j++){
+      const b = L[j], ub = b.userData;
+      if(ua.grp===ub.grp) continue;
+      let dx = b.position.x-a.position.x, dy = b.position.y-a.position.y, dz = b.position.z-a.position.z;
+      if(dy>2*R||dy<-2*R) continue;
+      const d = Math.hypot(dx,dy,dz);
+      if(d<2*R && d>1e-4){
+        dx/=d; dy/=d; dz/=d;
+        const ov = (2*R-d)/2;
+        a.position.x -= dx*ov; a.position.y -= dy*ov; a.position.z -= dz*ov;
+        b.position.x += dx*ov; b.position.y += dy*ov; b.position.z += dz*ov;
+        const rel = (ua.vx-ub.vx)*dx+(ua.vy-ub.vy)*dy+(ua.vz-ub.vz)*dz;
+        if(rel>0){
+          const j2 = rel*0.75;
+          ua.vx -= j2*dx; ua.vy -= j2*dy; ua.vz -= j2*dz;
+          ub.vx += j2*dx; ub.vy += j2*dy; ub.vz += j2*dz;
+          if(rel>0.05) clack(rel/MAXV);
+          if(ua.grp){ ua.grp.sleep = false; ua.grp.rest = 0; }
+          if(ub.grp){ ub.grp.sleep = false; ub.grp.rest = 0; }
+        }
+      }
+    }
+  }
+}
+function startStoneFade(s){
+  const u = s.userData; u.fade = true; u.alpha = 1;
+  s.material = s.material.map(m=>{ const c = m.clone(); c.transparent = true; return c; });
+}
+function fadeStones(){                                // 바닥 말이 42개를 넘으면 가장 오래된 14개를 서서히 사라지게
+  if(++capT%15===0){
+    const list = allStones().filter(s=>s.userData.falling && !s.userData.fade && s.position.y<FLOOR+0.6);
+    if(list.length>42){
+      list.sort((a,b)=>(a.userData.seq||0)-(b.userData.seq||0));
+      for(let i=0;i<14;i++) startStoneFade(list[i]);
+    }
+  }
+  const kill = [];
+  allStones().forEach(s=>{
+    const u = s.userData; if(!u.fade) return;
+    u.alpha -= 0.02;
+    if(u.alpha<=0){ kill.push(s); return; }
+    const op = u.grp && u.grp.fade ? Math.min(u.alpha,u.grp.alpha) : u.alpha;
+    s.material.forEach(m=>{ m.transparent = true; m.opacity = op; });
+    if(u.alpha<0.3) s.castShadow = false;
+  });
+  kill.forEach(s=>{
+    const u = s.userData, arr = u.grp ? u.grp.stones : stones;
+    const i = arr.indexOf(s); if(i>=0) arr.splice(i,1);
+    (u.grp ? TG : stoneG).remove(s); s.material.forEach(m=>m.dispose());
+  });
+}
+function settleOverlaps(){
+  const L = allStones();
+  for(const o of throwing){ tQi.copy(o.q).invert(); for(const s of L) boxPush(o,s); }
+  crossStones();
+  fadeStones();
+}
+
+const tQb = new THREE.Quaternion(), nB = new THREE.Vector3(), tC = new THREE.Vector3();
+function boardSupport(o){                              // 다른 판 위에 겹쳐 떨어지면 윗면에 올라앉음(파고들지 않고 쌓임)
+  for(const b of throwing){
+    if(b===o) continue;
+    tQb.copy(b.q).invert();
+    nB.set(0,1,0).applyQuaternion(b.q);
+    for(const c of CORN){
+      tR.copy(c).applyQuaternion(o.q);
+      tB.set(o.pos.x+tR.x-b.pos.x,o.pos.y+tR.y-b.pos.y,o.pos.z+tR.z-b.pos.z).applyQuaternion(tQb);
+      if(Math.abs(tB.x)<HALF && Math.abs(tB.z)<HALF && tB.y<0 && tB.y>-0.7){
+        o.pos.addScaledVector(nB,-tB.y);
+        tA.crossVectors(o.w,tR).add(o.v);
+        tC.set(o.pos.x+tR.x-b.pos.x,o.pos.y+tR.y-b.pos.y,o.pos.z+tR.z-b.pos.z);
+        tVt.crossVectors(b.w,tC).add(b.v);
+        tA.sub(tVt);
+        const vn = tA.dot(nB);
+        if(vn<0){
+          const e = vn<-0.05 ? 0.2 : 0;
+          tC.crossVectors(tR,nB);
+          const jn = -(1+e)*vn/(1+KI*tC.lengthSq());
+          o.v.addScaledVector(nB,jn); o.w.addScaledVector(tC,KI*jn);
+          tVt.copy(tA).addScaledVector(nB,-vn);
+          const tm = tVt.length();
+          if(tm>1e-6){
+            const jt = Math.min(MU*jn,tm/(1+KI*tR.lengthSq()));
+            tVt.multiplyScalar(-jt/tm); o.v.add(tVt);
+            tC.crossVectors(tR,tVt); o.w.addScaledVector(tC,KI);
+          }
+        }
+      }
+    }
+  }
+}
+
+/* ---------- 판끼리 끼임 방지 (파고들면 가장 얕은 면으로 빠져나온 뒤 반동 처리) ---------- */
+const nW = new THREE.Vector3(), pW = new THREE.Vector3(), tL = new THREE.Vector3(), tQ2 = new THREE.Quaternion();
+const PTS = CORN.slice();
+[-1,0].forEach(y=>[[HALF,0],[-HALF,0],[0,HALF],[0,-HALF]].forEach(p=>PTS.push(new THREE.Vector3(p[0],y,p[1]))));
+function resolveBoards(o,b,p,n,pen){
+  const corr = Math.max(0,pen-0.006)*(b.sleep ? 0.8 : 0.4);   // 여유(slop)를 두고 조금씩만 보정 (한 번에 다 밀면 튐)
+  o.pos.addScaledVector(n,corr);
+  tR.copy(p).sub(o.pos);
+  tA.crossVectors(o.w,tR).add(o.v);
+  tC.copy(p).sub(b.pos); tVt.crossVectors(b.w,tC).add(b.v);
+  tA.sub(tVt);
+  const vn = tA.dot(n);
+  if(vn>=0) return;
+  o.touch = 1;
+  const e = vn<-0.15 ? 0.15 : 0;
+  tC.crossVectors(tR,n);
+  const jn = -(1+e)*vn/(1+KI*tC.lengthSq());
+  o.v.addScaledVector(n,jn); o.w.addScaledVector(tC,KI*jn);
+  tVt.copy(tA).addScaledVector(n,-vn);
+  const tm = tVt.length();
+  if(tm>1e-6){
+    const jt = Math.min(MU*jn,tm/(1+KI*tR.lengthSq()));
+    tVt.multiplyScalar(-jt/tm); o.v.add(tVt);
+    tC.crossVectors(tR,tVt); o.w.addScaledVector(tC,KI);
+  }
+}
+function probe(o,b,sgn){                               // sgn>0: o의 점이 b 안으로, sgn<0: b의 점이 o 안으로
+  const A = sgn>0 ? o : b, B = sgn>0 ? b : o;
+  tQ2.copy(B.q).invert();
+  let best = 0, bp = null, bn = null;
+  for(const c of PTS){
+    pW.copy(c).applyQuaternion(A.q).add(A.pos);
+    tL.copy(pW).sub(B.pos).applyQuaternion(tQ2);
+    if(tL.y>=0 || tL.y<=-1 || Math.abs(tL.x)>=HALF || Math.abs(tL.z)>=HALF) continue;
+    const cand = [[-tL.y,0,1,0],[1+tL.y,0,-1,0],[HALF-tL.x,1,0,0],[HALF+tL.x,-1,0,0],[HALF-tL.z,0,0,1],[HALF+tL.z,0,0,-1]];
+    let m = cand[0]; for(const k of cand) if(k[0]<m[0]) m = k;
+    if(m[0]>best){ best = m[0]; bp = pW.clone(); bn = m; }
+  }
+  if(!bp) return;
+  nW.set(bn[1],bn[2],bn[3]).applyQuaternion(B.q);
+  if(sgn<0) nW.negate();
+  resolveBoards(o,b,bp,nW,best+0.002);
+}
+function boardSupport2(o){
+  for(const b of throwing){
+    if(b===o) continue;
+    const dx = b.pos.x-o.pos.x, dy = b.pos.y-o.pos.y, dz = b.pos.z-o.pos.z;
+    if(dx*dx+dy*dy+dz*dz>30*30) continue;
+    probe(o,b,1); probe(o,b,-1);
+  }
+}
+
+function tick(){
+  zoomC += (zoomT-zoomC)*0.15;
+  const k = fitK/zoomC*camK;
+  camera.position.set(0,CAM_Y*k,CAM_Z*k);
+  camera.lookAt(0,0,0);
+  if(intro){
+    intro.t += 1/50;
+    const t = Math.min(1,intro.t); introZ = 36*Math.pow(1-t,2.2); stoneG.position.z = introZ;
+    if(t>=1){ intro = null; introZ = 0; stoneG.position.z = 0; thud(220,0.3,0.14); }
+  }
+  throwing.slice().forEach(stepThrown);
+  settleOverlaps();   // 던진 판들 물리 (3개까지 유지, 초과분은 페이드아웃)
+}
+
+/* ================= 보스전 (도전과제) ================= */
+let boss = null, camYaw = 0, camYawT = 0, bossRot = null;
+const BR = R*4;
+let BLIM = HALF-BR*0.55, camK = 1;                    // 보스 반지름(알의 4배) / 이동 한계
+const fxM = (c,o)=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,depthWrite:false,side:THREE.DoubleSide});
+const gCirc = new THREE.CircleGeometry(1,48).rotateX(-Math.PI/2);
+const gLine = new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2).translate(0.5,0,0);
+const gSq = new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
+const gBox = new THREE.BoxGeometry(1,1,1);
+const PS = R*6;                                          // 장판 한 변(알의 3배 크기)
+const flashEl = document.createElement('div');           // 2페이즈 섬광
+flashEl.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:5';
+document.body.appendChild(flashEl);
+const nameEl = document.createElement('div');            // 보스 등장 이름표
+nameEl.innerHTML = '<div style="display:flex;gap:14px"><span style="color:#e0352f">Boss</span><span style="color:#fff">바둑</span></div><div style="width:100%;height:3px;background:linear-gradient(90deg,rgba(190,190,190,.85),rgba(190,190,190,0))"></div>';
+const NAME_TR = 'opacity .45s ease,transform .45s cubic-bezier(.2,.8,.2,1)';
+nameEl.style.cssText = 'position:fixed;left:10%;right:10%;top:30%;z-index:5;pointer-events:none;display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:30px;font-weight:800;letter-spacing:.12em;text-shadow:0 2px 8px rgba(0,0,0,.6);opacity:0;transform:translateX(70px);transition:'+NAME_TR;
+function nameReset(){ nameEl.style.transition = 'none'; nameEl.style.opacity = 0; nameEl.style.transform = 'translateX(70px)'; void nameEl.offsetWidth; nameEl.style.transition = NAME_TR; }
+const _cp = new THREE.Vector3(), _cl = new THREE.Vector3();
+const clampB = v=>Math.max(-BLIM,Math.min(BLIM,v));
+
+function fxAdd(geo,mat,x,z,sx,sz,y){
+  const m = new THREE.Mesh(geo,mat); m.position.set(x,y||0.04,z); m.scale.set(sx,1,sz); m.renderOrder = 3;
+  stoneG.add(m); boss.fx.push(m); return m;
+}
+function fxDel(m){ stoneG.remove(m); m.material.dispose(); const i = boss.fx.indexOf(m); if(i>=0) boss.fx.splice(i,1); }
+function fxClear(){ boss.fx.slice().forEach(fxDel); }
+
+function drawBar(){
+  const b = boss, g = b.barC.getContext('2d');
+  g.clearRect(0,0,512,72); g.fillStyle = 'rgba(20,8,8,.88)'; g.fillRect(0,0,512,72);
+  g.strokeStyle = '#f3e3b3'; g.lineWidth = 3; g.strokeRect(2,2,508,68);
+  g.fillStyle = '#ff9a94'; g.fillRect(10,34,492*b.lag/b.max,28);       // 연한 빨강(잔상)
+  g.fillStyle = '#d62b22'; g.fillRect(10,34,492*b.hp/b.max,28);        // 붉은 피(바로 줄어듦)
+  g.font = 'bold 24px system-ui,"Noto Sans KR",sans-serif'; g.textBaseline = 'alphabetic'; g.fillStyle = '#f3e3b3';
+  g.textAlign = 'left'; g.fillText('BOSS',12,27);
+  g.textAlign = 'right'; g.fillText(b.hp+' / '+b.max,500,27);
+  b.barT.needsUpdate = true;
+}
+function drawTop(white){                                 // 바둑돌 윗면 (1페이즈 흑 / 2페이즈 백)
+  const b = boss, g = b.topC.getContext('2d');
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,256,256);
+  g.save(); g.scale(2,2);
+  g.fillStyle = white ? '#f3e3b3' : '#3b2415'; g.fillRect(0,0,128,128);
+  for(let k=0,r=5;r<60;r+=3.4,k++){
+    g.strokeStyle = k%2 ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.10)'; g.lineWidth = 1.6;
+    g.beginPath(); g.arc(64+(white?3:-3),64,r,0,7); g.stroke();
+  }
+  g.strokeStyle = 'rgba(255,255,255,.10)'; g.lineWidth = 3; g.beginPath(); g.arc(64,64,59,0,7); g.stroke();
+  g.strokeStyle = 'rgba(0,0,0,.22)'; g.lineWidth = 3; g.beginPath(); g.arc(64,64,63,0,7); g.stroke();
+  g.restore();
+  b.tex.needsUpdate = true;
+}
+function bossNote(t,ms){
+  if(!boss) return; const b = boss; b.note = t; updateUI();
+  setTimeout(()=>{ if(boss===b){ b.note = ''; updateUI(); } },ms);
+}
+function bossClear(){
+  camYaw = camYawT = 0; bossRot = null; flashEl.style.opacity = 0; nameReset();
+  HALF = 9.5; BLIM = HALF-BR*0.55; board.scale.set(1,1,1); board.position.y = -.5; stoneG.position.y = 0;   // 보통 판 크기/높이로 복귀
+  sc.left = sc.bottom = -18; sc.right = sc.top = 18; sc.updateProjectionMatrix();
+  if(!boss) return; const b = boss;
+  b.fx.slice().forEach(fxDel);
+  stoneG.remove(b.mesh); stoneG.remove(b.bar);
+  b.mesh.geometry.dispose(); b.bSide.dispose(); b.bTop.dispose();
+  (b.parts||[]).forEach(m=>{ stoneG.remove(m); m.geometry.dispose(); m.material.dispose(); });
+  b.bar.material.dispose(); b.tex.dispose(); b.barT.dispose();
+  boss = null;
+}
+function bossStart(){
+  bossClear(); gid++;
+  stones.forEach(s=>stoneG.remove(s)); stones = [];
+  throwing.forEach(removeThrown); throwing = [];
+  bphi = tphi = bz = tz = bom = bvel = pom = pbv = 0;
+  board.rotation.y = 0; board.position.z = 0; board.visible = true;
+  HALF = 14.25; BLIM = HALF-BR*0.55; board.scale.set(1.5,1,1.5);       // 보스전 판은 1.5배
+  sc.left = sc.bottom = -26; sc.right = sc.top = 26; sc.updateProjectionMatrix();
+  hist = []; ending = false; drag = null; placeLog = []; aimGroup.visible = false; state = 'aim'; turn = 0;
+  for(let i=0;i<5;i++) makeStone(0,(i-2)*gap(5),9.6);       // 내 말 5개
+  const topC = document.createElement('canvas'); topC.width = topC.height = 256;
+  const barC = document.createElement('canvas'); barC.width = 512; barC.height = 72;
+  const tex = new THREE.CanvasTexture(topC), barT = new THREE.CanvasTexture(barC);
+  const bSide = new THREE.MeshStandardMaterial({color:0x3b2415,roughness:.8});
+  const bTop = new THREE.MeshStandardMaterial({map:tex,roughness:.8});
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(BR,BR*0.96,1,56),[bSide,bTop,bTop]);   // 검은 바둑돌, 두께 1
+  mesh.castShadow = mesh.receiveShadow = true; stoneG.add(mesh);
+  const bar = new THREE.Sprite(new THREE.SpriteMaterial({map:barT,transparent:true,depthTest:false}));   // 공중 보스바
+  bar.scale.set(9,9*72/512,1); bar.renderOrder = 999; stoneG.add(bar);
+  boss = {hp:50,max:50,lag:50,lagT:0,rx:0,dipT:9,x:0,z:-6.75,jy:14,sc:1,air:true,ent:0,shk:0,dash:0,mesh,bar,bSide,bTop,tex,topC,barC,barT,
+          ph:1,tr:-1,cz:0,sw:0,fx:[],cur:null,cd:2.5,last:0,over:0,note:'',flash:0,slamT:1,t0:performance.now()};
+  drawTop(); drawBar();
+  intro = null; introZ = 0; stoneG.position.set(0,0,0); board.position.y = -0.5;   // 판은 이미 세팅된 채로 시작
+  updateUI();
+}
+
+function bossKill(s){                                    // 말이 죽음: 위로 튀었다가 판을 뚫고 떨어짐
+  const u = s.userData; if(u.falling) return;
+  u.falling = true; u.dead = true; u.seq = ++seqN; u.vx = u.vz = 0; u.vy = .14;
+  u.w.set((Math.random()-.5)*.12,0,(Math.random()-.5)*.12);
+  thud(500,.3,.15); updateUI();
+}
+function bossBreak(){                                    // 죽을 때: 보스와 보스바가 함께 페이드아웃
+  const b = boss; b.parts = []; b.fade = 0;
+  b.bSide.transparent = b.bTop.transparent = true; b.bSide.needsUpdate = b.bTop.needsUpdate = true;
+}
+function dmgFor(pw){ const lv = Math.round(pw*10); return lv>=10 ? 3 : lv>=6 ? 2 : 1; }   // 세기 1~10: 6~9 → 2, 10 → 3
+function bossHit(dmg){
+  const b = boss; if(b.over || b.tr>=0) return;
+  b.hp -= dmg||1; b.flash = 1; b.lagT = 1; clack(.8); thud(400,.25,.08);
+  if(b.hp<=0){
+    b.hp = 0;
+    if(b.ph===1){                                        // 체력 다 깎으면 2페이즈 연출 시작
+      b.tr = 0; b.sw = 0; b.cur = null; b.air = false; b.dash = 0; b.sc = 1; b.jy = 0; b.rx = 0; fxClear();
+    } else { b.over = 1; b.cur = null; b.air = false; b.dash = 0; b.jy = 0; b.rx = 0; fxClear(); thud(200,.6,.5); bossBreak(); updateUI(); }
+  }
+  drawBar();
+}
+function bossLand(){                                     // 착지: 보스 1.2배 범위 안의 말은 죽음
+  const b = boss; b.dipT = 0;
+  stones.forEach(s=>{ if(!s.userData.falling && Math.hypot(s.position.x-b.x,s.position.z-b.z)<BR*1.2) bossKill(s); });
+  thud(250,.55,.25); clack(1);
+}
+function bossRayLen(dx,dz){
+  let L = 1e9;
+  if(dx>1e-4) L = Math.min(L,(BLIM-boss.x)/dx); else if(dx<-1e-4) L = Math.min(L,(-BLIM-boss.x)/dx);
+  if(dz>1e-4) L = Math.min(L,(BLIM-boss.z)/dz); else if(dz<-1e-4) L = Math.min(L,(-BLIM-boss.z)/dz);
+  return Math.max(1,L);
+}
+function bossPick(){                                     // 1 점프 착지 / 2 장판 내리찍기 / 3 조준 후 대쉬 (2페이즈는 진화 버전)
+  const b = boss, al = stones.filter(s=>!s.userData.falling);
+  if(!al.length) return;
+  const p2 = b.ph===2;
+  let id; do{ id = 1+Math.floor(Math.random()*3); }while(id===b.last);
+  b.last = id; const c = {id,T:0}; b.cur = c;
+  if(id===1){                                            // 타게팅은 정해지는 순간 위치에 고정
+    const a = al.slice().sort(()=>Math.random()-.5);
+    c.tg = [a[0]]; c.J = [2.5];
+    if(p2){ c.tg.push(a[1]||a[0]); c.J.push(3.3); }      // 2페이즈: 첫 착지 직후 바로 두 번째 점프
+    c.from = []; c.to = []; c.lock = []; c.land = []; c.end = c.J[c.J.length-1]+1.5;
+    c.mk = c.tg.map(s=>{ const x = clampB(s.position.x), z = clampB(s.position.z); return {
+      o:fxAdd(gCirc,fxM(0xff2a2a,.25),x,z,BR*1.2,BR*1.2),
+      i:fxAdd(gCirc,fxM(0xff2a2a,.5),x,z,.01,.01,.05)}; });
+  } else if(id===2){                                     // 장판: 1페이즈 3개(0.5초 간격) / 2페이즈 4개(0.4초 간격)
+    c.S = p2 ? [0,.8,1.6,2.4] : [0,1,2]; c.pop = p2 ? 1.3 : 1.5; c.pads = []; c.end = c.S[c.S.length-1]+c.pop+1.3;
+  } else {                                               // 조준 후 대쉬
+    c.tg = al[Math.floor(Math.random()*al.length)]; c.Tc = 2; c.dd = .55;
+    const W = BR*2*(p2?1.1:1);
+    c.zone = fxAdd(gLine,fxM(0xff2a2a,.2),b.x,b.z,1,W);
+    c.fill = fxAdd(gLine,fxM(0xff2a2a,.5),b.x,b.z,.01,W,.05);
+  }
+}
+function sk1(dt){                                        // 점프 착지
+  const b = boss, c = b.cur; c.T += dt; let air = false;
+  c.tg.forEach((s,i)=>{
+    const m = c.mk[i];
+    if(!c.lock[i]){
+      const k = BR*1.2*Math.min(1,c.T/c.J[i])+.01; m.i.scale.set(k,1,k);
+      if(c.T>=c.J[i]){ c.lock[i] = 1; c.from[i] = [b.x,b.z]; c.to[i] = [m.o.position.x,m.o.position.z];
+        const jx = c.to[i][0]-b.x, jz = c.to[i][1]-b.z, jl = Math.hypot(jx,jz); b.jd = jl>.01 ? [jx/jl,jz/jl] : [0,1]; }
+    }
+    if(c.lock[i] && !c.land[i]){
+      const p = (c.T-c.J[i])/.8;
+      if(p>=1){ c.land[i] = 1; b.x = c.to[i][0]; b.z = c.to[i][1]; b.rx = 0; bossLand(); fxDel(m.o); fxDel(m.i); }
+      else{
+        const e = p*p*(3-2*p);
+        b.x = c.from[i][0]+(c.to[i][0]-c.from[i][0])*e; b.z = c.from[i][1]+(c.to[i][1]-c.from[i][1])*e;
+        b.jy = 4.2*Math.sin(Math.PI*p); air = true;
+        const f = Math.max(0,Math.min(1,(p-.1)/.8)); b.rx = Math.PI*2*f*f*(3-2*f);   // 날아가는 방향으로 한 바퀴(천천히)
+      }
+    }
+  });
+  b.air = air; if(!air) b.jy = 0;
+  return c.T>=c.end;
+}
+function sk2(dt){                                        // 장판 내리찍기
+  const b = boss, c = b.cur; c.T += dt;
+  c.S.forEach((sp,i)=>{
+    if(c.T<sp || c.pads[i]) return;
+    const ang = Math.random()*Math.PI*2, dist = (BR*1.0+Math.random()*BR*1.8)*1.2;   // 보스 주변 랜덤 위치
+    let x = b.x+Math.cos(ang)*dist, z = b.z+Math.sin(ang)*dist;
+    x = Math.max(-HALF+PS/2,Math.min(HALF-PS/2,x)); z = Math.max(-HALF+PS/2,Math.min(HALF-PS/2,z));
+    c.pads[i] = {x,z,sp,pop:false,mk:fxAdd(gSq,fxM(0xff2a2a,.25),x,z,PS,PS),box:null};   // 생성 위치 미리 표시
+    b.slamT = 0; thud(300,.35,.12);
+  });
+  c.pads.forEach(p=>{
+    const q = c.T-p.sp;
+    if(!p.pop){
+      p.mk.material.opacity = .2+.4*Math.min(1,q/c.pop);
+      if(q>=c.pop){                                      // 장판이 튀어나옴 → 그 위의 말은 죽음
+        p.pop = true; fxDel(p.mk); p.mk = null;
+        const bx = new THREE.Mesh(gBox,new THREE.MeshStandardMaterial({color:0x6b3a1e,roughness:.8}));
+        bx.scale.set(PS,1.4,PS); bx.position.set(p.x,-.7,p.z); bx.castShadow = bx.receiveShadow = true;
+        stoneG.add(bx); b.fx.push(bx); p.box = bx;
+        const h = PS*.35;
+        stones.forEach(s=>{ if(!s.userData.falling && Math.abs(s.position.x-p.x)<h && Math.abs(s.position.z-p.z)<h) bossKill(s); });
+        thud(250,.5,.2); clack(1);
+      }
+    } else if(p.box){
+      const r = q-c.pop;
+      p.box.position.y = r<.15 ? -.7+1.4*(r/.15) : r<.7 ? .7 : .7-1.4*Math.min(1,(r-.7)/.3);
+      if(r>=1){ fxDel(p.box); p.box = null; }
+    }
+  });
+  return c.T>=c.end;
+}
+function sk3(dt){                                        // 조준 후 대쉬 (2페이즈: 1.2배 커졌다 돌아옴)
+  const b = boss, c = b.cur; c.T += dt; const W = BR*2*(b.ph===2?1.1:1);
+  if(c.T<c.Tc){
+    if(c.dx===undefined){                                // 방향은 한 번만 정함(유도 X)
+      const s = c.tg, dx = s.position.x-b.x, dz = s.position.z-b.z, d = Math.hypot(dx,dz);
+      if(d>.01){ c.dx = dx/d; c.dz = dz/d; } else { c.dx = 0; c.dz = 1; }
+    }
+    c.L = bossRayLen(c.dx,c.dz);
+    c.zone.rotation.y = c.fill.rotation.y = -Math.atan2(c.dz,c.dx);
+    c.zone.scale.set(c.L,1,W); c.fill.scale.set(Math.max(.01,c.L*c.T/c.Tc),1,W);
+  } else if(c.T<c.Tc+c.dd){
+    if(!c.go){ c.go = 1; c.x0 = b.x; c.z0 = b.z; b.dash = 1; c.fill.scale.x = c.L; thud(500,.4,.2); }
+    const p = (c.T-c.Tc)/c.dd, e = 1-(1-p)*(1-p);
+    b.x = c.x0+c.dx*c.L*e; b.z = c.z0+c.dz*c.L*e;
+    const tg = b.ph===2 ? 1.1 : .9, k = Math.min(1,p*4); b.sc = 1+(tg-1)*k*k*(3-2*k);   // 1페이즈 0.9배 / 2페이즈 1.1배
+  } else {
+    if(c.go && b.dash){ b.dash = 0; fxClear(); }          // 도착
+    b.sc += (1-b.sc)*Math.min(1,dt*10);                    // 도착하면 원래 크기로 돌아옴
+  }
+  return c.T>=c.Tc+c.dd+.8;
+}
+function bossCollide(){
+  const b = boss; if(b.air || b.over===1) return;
+  const rad = BR*b.sc+R, c = b.cur;
+  for(const s of stones){
+    const u = s.userData; if(u.bcd>0) u.bcd--; if(u.falling) continue;
+    if(Math.hypot(u.vx,u.vz)<.06) u.pw = 0;             // 멈추면 세기 기록 초기화
+    let dx = s.position.x-b.x, dz = s.position.z-b.z, d = Math.hypot(dx,dz);
+    if(d>=rad) continue;
+    if(d<1e-4){ dx = 0; dz = 1; d = 1; }
+    const nx = dx/d, nz = dz/d;
+    s.position.x = b.x+nx*rad; s.position.z = b.z+nz*rad;
+    if(b.dash && c && c.go){                             // 실제 대쉬 이동 중에만 강하게 날아감
+      const vx = c.dx*.9+nx*.55, vz = c.dz*.9+nz*.55, l = Math.hypot(vx,vz)||1;
+      kick(u,vx/l*1.3-u.vx,vz/l*1.3-u.vz); u.vx = vx/l*1.3; u.vz = vz/l*1.3;
+      if(!(u.bcd>0)){ u.bcd = 30; thud(400,.4,.12); clack(1); }
+      continue;
+    }
+    const vn = u.vx*nx+u.vz*nz;                          // 튕겨나가는 힘 2.5배 감소(1.6 → 1.24). 최대 세기로 쏘면 데미지 2
+    if(vn<0){
+      u.vx -= 1.24*vn*nx; u.vz -= 1.24*vn*nz;
+      const sp2 = Math.hypot(u.vx,u.vz); if(sp2>.3){ u.vx *= .3/sp2; u.vz *= .3/sp2; }   // 튕김 속도 상한
+      if(vn<-.05 && !(u.bcd>0)){ u.bcd = 20; bossHit(dmgFor(u.pw||0)); u.pw = 0; }
+    }
+  }
+}
+function bossWhite(){                                    // 하얀 바둑알로 변신
+  const b = boss; b.ph = 2; b.bSide.color.setHex(0xf3e3b3); drawTop(1); drawBar();
+}
+function bossUpdate(){
+  const b = boss; if(!b) return;
+  ending = false;
+  const now = performance.now(); let dt = Math.min(.05,(now-b.t0)/1000); b.t0 = now;
+  if(b.over || intro || panel.classList.contains('show')) dt = 0;
+  const rdt = dt;
+  if(b.lag>b.hp){                                        // 잔상: 1초 안에 공격이 없으면 훅 떨어져 붉은 피 쪽으로
+    if(b.lagT>0) b.lagT -= rdt;
+    else{ b.lag += (b.hp-b.lag)*.3; if(b.lag-b.hp<.02) b.lag = b.hp; drawBar(); }
+  }
+  if(dt>0 && b.ent>=0){                                  // 입장: 보스 자리 확대(대각선) → 쾅! 착지 → 이름표 → 전투 화면 복귀
+    b.ent += dt; const t = b.ent;
+    b.cz = t<.8 ? t/.8 : t<2.2 ? 1 : Math.max(0,1-(t-2.2)/.8);
+    const q = Math.max(0,(t-.8)/.6);
+    b.mesh.visible = t>=.8; b.bar.visible = t>=1.6;
+    if(q<1) b.jy = 14*(1-q*q);
+    else if(!b.land0){ b.land0 = 1; b.jy = 0; b.slamT = 0; b.shk = 1; thud(250,.7,.4); clack(1); }
+    if(t>=3){ b.ent = -1; b.cz = 0; b.air = false; b.mesh.visible = b.bar.visible = true; b.cd = 1.5; }
+    dt = 0;
+  }
+  if(b.shk>0) b.shk = Math.max(0,b.shk-.02);
+  if(dt>0 && b.tr>=0){                                   // 2페이즈 연출: 보스 시점 확대 → 섬광 → 하얀 바둑알 → 복귀
+    b.tr += dt; const t = b.tr;
+    b.cz = t<1 ? t : t<2.8 ? 1 : Math.max(0,1-(t-2.8)/.8);
+    flashEl.style.opacity = t<1 ? 0 : t<1.3 ? (t-1)/.3 : t<1.9 ? 1-(t-1.3)/.6 : 0;
+    if(t>=1.3 && !b.sw){ b.sw = 1; bossWhite(); thud(300,.5,.3); }
+    if(t>=1.3){                                          // 2페이즈 체력이 서서히 회복
+      const h = Math.round(b.max*Math.min(1,(t-1.3)/1.8));
+      if(h!==b.hp){ b.hp = h; b.lag = h; drawBar(); }
+    }
+    if(t>=3.6){ b.tr = -1; b.cz = 0; flashEl.style.opacity = 0; b.cd = 1; b.hp = b.lag = b.max; drawBar(); }
+    dt = 0;
+  }
+  if(dt>0){
+    if(b.cur){
+      if([null,sk1,sk2,sk3][b.cur.id](dt)){ fxClear(); b.cur = null; b.air = false; b.dash = 0; b.sc = 1; b.jy = 0; b.rx = 0; b.cd = 1.3; }
+    } else if((b.cd -= dt)<=0) bossPick();
+  }
+  if(b.slamT<.3) b.slamT += dt;
+  bossCollide();
+  if(!b.over && alive(0)===0){                           // 패배 → 바로 도전과제 페이지로
+    reset(); openPanel(false); page = PAGES.indexOf('도전과제'); buildPanel();
+    return;
+  }
+  if(b.over===1 && b.parts){                            // 보스와 보스바가 함께 서서히 사라짐
+    b.fade = Math.min(1,b.fade+.015);
+    const o = Math.max(0,1-b.fade);
+    b.bSide.opacity = b.bTop.opacity = o; b.bar.material.opacity = o;
+    b.mesh.visible = b.bar.visible = o>.01;
+    b.parts.forEach(m=>{
+      const u = m.userData; m.position.x += u.vx; m.position.y += u.vy; m.position.z += u.vz; u.vy -= .012;
+      m.rotation.x += u.wx; m.rotation.z += u.wz;
+      if(m.position.y<.15 && Math.abs(m.position.x)<HALF && Math.abs(m.position.z)<HALF){ m.position.y = .15; u.vy = -u.vy*.35; u.vx *= .92; u.vz *= .92; u.wx *= .9; u.wz *= .9; }
+      m.material.opacity = Math.max(0,1-b.fade); m.visible = b.fade<1;
+    });
+  }
+  if(b.flash>0) b.flash = Math.max(0,b.flash-.035);      // 맞으면 바로 하얗게 → 서서히 원래 색으로
+  const fe = b.flash*.15; b.bSide.emissive.setRGB(fe,fe,fe); b.bTop.emissive.setRGB(fe,fe,fe);   // 아주 연하게
+  const so = b.slamT<.3 ? 1.1*Math.sin(Math.PI*b.slamT/.3) : 0;
+  b.mesh.position.set(b.x,.5*b.sc+b.jy+so,b.z); b.mesh.scale.setScalar(b.sc); const jd = b.jd||[0,1]; _ax.set(jd[1],0,-jd[0]); b.mesh.quaternion.setFromAxisAngle(_ax,b.rx);   // 날아가는 방향으로 회전
+  if(b.dipT<1) b.dipT += rdt;                            // 착지 시 판이 살짝 내려갔다 올라옴
+  const dpT = b.dipT, dpY = dpT<.6 ? -.6*Math.sin(dpT/.6*Math.PI) : 0;
+  board.position.y = -.5+dpY; stoneG.position.y = 0; b.mesh.position.y += dpY;   // 판과 보스만 내려가고, 말은 잠깐 공중에 떠 있다가 판이 올라오면 다시 닿음
+  b.bar.position.set(b.x,5+b.jy,b.z);
+}
+
+/* ---- 기존 함수에 보스전 연결 (원본 코드는 그대로) ---- */
+const _uu = updateUI; updateUI = function(){
+  if(!boss) return _uu();
+  const m = document.getElementById('msg');
+  const t = boss.over===1 ? '승리!' : boss.over===2 ? '패배…' : boss.note;
+  m.textContent = t||''; m.style.display = t ? 'block' : 'none';
+  document.getElementById('bBack').disabled = true;
+};
+const _ph = physics; physics = function(){ _ph(); bossUpdate(); };
+const _sf = startFall; startFall = function(){ _sf.apply(null,arguments); if(boss) ending = false; };
+const _rs = reset; reset = function(){ bossClear(); _rs(); };
+const _nb = newBoard; newBoard = function(){ if(boss){ bossStart(); return; } _nb(); };     // 보스전에서 판갈이 = 재도전
+const _ud = undo; undo = function(){ if(boss) return; _ud(); };
+const _ar = aiReply; aiReply = function(){ if(!boss) _ar(); };
+const _sh = shoot; shoot = function(s,vx,vz,p){ s.userData.pw = p; if(boss){ vx *= .7; vz *= .7; } _sh(s,vx,vz,p); };       // 쏜 세기 기록(최대=1)
+const _pk = pickAt; pickAt = function(e){
+  if(!boss) return _pk(e);
+  if(state!=='aim' || boss.ent>=0) return null;
+  const r = cv.getBoundingClientRect(), px = e.clientX-r.left, py = e.clientY-r.top; let best = null, bd = 34;
+  for(const s of stones){
+    const u = s.userData; if(u.falling) continue;
+    tmpV.copy(s.position); if(SKINS[skin].k==='ch' && !u.lying) tmpV.y += 0.8;
+    tmpV.project(camera);
+    const d = Math.hypot((tmpV.x+1)/2*r.width-px,(1-tmpV.y)/2*r.height-py);
+    if(d<bd){ bd = d; best = s; }
+  }
+  return best;
+};
+
+/* 보스전 판 돌리기: 판 물리 없이 카메라만 판 둘레로 회전 (말·보스·장판이 함께 돌아가 보임) */
+cv.addEventListener('pointerdown',e=>{ if(boss){ if(rot) bossRot = {x:e.clientX,yaw:camYawT}; rot = null; } });
+cv.addEventListener('pointermove',e=>{ if(bossRot) camYawT = bossRot.yaw-(e.clientX-bossRot.x)*0.008; });
+cv.addEventListener('pointerup',()=>{ bossRot = null; });
+cv.addEventListener('pointercancel',()=>{ bossRot = null; });
+const _tk = tick; tick = function(){
+  camK += ((boss?1.35:1)-camK)*.1;
+  _tk();
+  camYaw += (camYawT-camYaw)*0.2;
+  if(Math.abs(camYaw)>1e-4){
+    const z0 = camera.position.z;
+    camera.position.x = z0*Math.sin(camYaw); camera.position.z = z0*Math.cos(camYaw);
+    camera.lookAt(0,0,0);
+  }
+  if(boss && boss.cz>.001){                              // 2페이즈 연출: 보스 시점으로 확대
+    const e = boss.cz*boss.cz*(3-2*boss.cz);
+    if(boss.ent>=0) _cp.set(boss.x+7,7.5,boss.z+8); else _cp.set(boss.x,6.5,boss.z+9);
+    camera.position.lerp(_cp,e);
+    _cl.set(boss.x*e,.6*e,boss.z*e); camera.lookAt(_cl);
+  }
+  if(boss && boss.shk>0){                                // 착지 흔들림
+    const a = boss.shk*boss.shk*.8;
+    camera.position.x += (Math.random()-.5)*a; camera.position.y += (Math.random()-.5)*a;
+  }
+};
+
+const _bp = buildPanel; buildPanel = function(){
+  _bp();
+  if(PAGES[page]!=='도전과제') return;
+  rowsEl.style.display = ''; document.getElementById('soon').style.display = 'none';
+  addAction('보스전','도전',()=>{ ensureAudio(); panel.classList.remove('show'); bossStart(); });
+};
+
+applySkin(); reset(); resize(); openPanel(true);
+(function loop(){
+  tick();
+  physics();
+  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+})();
+})();
+</script>
+</body>
+</html>
