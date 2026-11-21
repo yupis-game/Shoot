@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="only light">
 <title>알까기</title>
 <style>
+  :root{color-scheme:only light}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
   body{margin:0;overflow:hidden;background:#453526;color:#f3e3b3;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;-webkit-user-select:none;user-select:none}
@@ -50,6 +52,20 @@
   #card .txt:disabled{opacity:.4;background:transparent;color:#2a1d12}
   #card #bGo{height:46px;width:100%;margin-top:20px;font-size:15px;letter-spacing:.12em;border:0;background:#2a1d12;color:#f1e8d6;opacity:1}
   #card #bGo:active{background:#4a3320}
+
+  /* ---------- 다크모드 (설정에서 켬) ---------- */
+  body.dark,body.dark #wrap{background:#1b130c}
+  body.dark #card{background:#2b2219;color:#f1e8d6}
+  body.dark #dots i{background:rgba(241,232,214,.25)}
+  body.dark #dots i.on{background:#f1e8d6}
+  body.dark #body{border-top-color:rgba(241,232,214,.2)}
+  body.dark .row{border-bottom-color:rgba(241,232,214,.14)}
+  body.dark #card button{color:#f1e8d6}
+  body.dark #card .txt{border-color:rgba(241,232,214,.4)}
+  body.dark #card .txt:active{background:#f1e8d6;color:#2b2219}
+  body.dark #card .txt:disabled{background:transparent;color:#f1e8d6}
+  body.dark #card #bGo{background:#f1e8d6;color:#2b2219}
+  body.dark #card #bGo:active{background:#d9ccb4}
 </style>
 </head>
 <body>
@@ -115,6 +131,13 @@ sun.shadow.mapSize.set(2048,2048);
 const sc = sun.shadow.camera; sc.left = -18; sc.right = 18; sc.top = 18; sc.bottom = -18; sc.near = 1; sc.far = 60;
 sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.02;
 scene.add(sun); scene.add(sun.target);
+let dark = false;
+function setDark(v){                   // 다크모드: 설정 패널과 배경을 어둡게
+  dark = !!v;
+  document.body.classList.toggle('dark',dark);
+  scene.background.setHex(dark ? 0x1b130c : 0x453526);
+  floor.material.color.setHex(dark ? 0x1f160e : 0x4a3825);
+}
 function setBright(v){                 // 밝기 설정 (100% = 기본)
   bright = Math.max(0.5,Math.min(1.5,Math.round(v*10)/10));
   amb.intensity = 0.49*bright; sun.intensity = 0.52*bright;
@@ -941,7 +964,8 @@ function buildPanel(){
   } else if(name==='설정'){
     addRow('소리',soundOn?'켬':'끔',()=>{ soundOn = !soundOn; if(soundOn){ ensureAudio(); clack(0.6); } buildPanel(); });
     addRow('밝기',Math.round(bright*100)+'%',d=>{ setBright(bright+d*0.1); buildPanel(); });
-    addAction('초기화','기본값으로',()=>{ soundOn = true; setBright(1); buildPanel(); });
+    addRow('다크모드',dark?'켬':'끔',()=>{ setDark(!dark); buildPanel(); });
+    addAction('초기화','기본값으로',()=>{ soundOn = true; setBright(1); setDark(false); buildPanel(); });
   }
 }
 function openPanel(lobby){
@@ -1492,12 +1516,12 @@ function bossPick(){                                     // 1 점프 착지 / 2 
     const a = al.slice().sort(()=>Math.random()-.5);
     c.tg = [a[0]]; c.J = [2.5];
     if(p2){ c.tg.push(a[1]||a[0]); c.J.push(3.3); }      // 2페이즈: 첫 착지 직후 바로 두 번째 점프
-    c.from = []; c.to = []; c.lock = []; c.land = []; c.end = c.J[c.J.length-1]+1.5;
+    c.from = []; c.to = []; c.lock = []; c.land = []; c.end = c.J[c.J.length-1]+(p2 ? .85 : 1.5);
     c.mk = c.tg.map(s=>{ const x = clampB(s.position.x), z = clampB(s.position.z); return {
       o:fxAdd(gCirc,fxM(0xff2a2a,.25),x,z,BR*1.2,BR*1.2),
       i:fxAdd(gCirc,fxM(0xff2a2a,.5),x,z,.01,.01,.05)}; });
-  } else if(id===2){                                     // 장판: 1페이즈 3개(0.5초 간격) / 2페이즈 4개(0.4초 간격)
-    c.S = p2 ? [0,.8,1.6,2.4] : [0,1,2]; c.pop = p2 ? 1.3 : 1.5; c.pads = []; c.end = c.S[c.S.length-1]+c.pop+1.3;
+  } else if(id===2){                                     // 장판: 1페이즈 3개(1초 간격) / 2페이즈 5개(0.8초 간격)
+    c.S = p2 ? [0,.8,1.6,2.4,3.2] : [0,1,2]; c.pop = p2 ? 1.3 : 1.5; c.pads = []; c.end = c.S[c.S.length-1]+c.pop+(p2 ? .5 : 1.3);
   } else {                                               // 조준 후 대쉬
     c.tg = al[Math.floor(Math.random()*al.length)]; c.Tc = 2; c.dd = .55;
     const W = BR*2*(p2?1.1:1);
@@ -1532,7 +1556,7 @@ function sk2(dt){                                        // 장판 내리찍기
   const b = boss, c = b.cur; c.T += dt;
   c.S.forEach((sp,i)=>{
     if(c.T<sp || c.pads[i]) return;
-    const ang = Math.random()*Math.PI*2, dist = (BR*1.0+Math.random()*BR*1.8)*1.2;   // 보스 주변 랜덤 위치
+    const ang = Math.random()*Math.PI*2, dist = BR*1.3+Math.random()*BR*3.7;   // 보스 주변 랜덤 위치 (더 멀리까지: 보스 반지름의 1.3~5배)
     let x = b.x+Math.cos(ang)*dist, z = b.z+Math.sin(ang)*dist;
     x = Math.max(-HALF+PS/2,Math.min(HALF-PS/2,x)); z = Math.max(-HALF+PS/2,Math.min(HALF-PS/2,z));
     c.pads[i] = {x,z,sp,pop:false,mk:fxAdd(gSq,fxM(0xff2a2a,.25),x,z,PS,PS),box:null};   // 생성 위치 미리 표시
@@ -1578,7 +1602,7 @@ function sk3(dt){                                        // 조준 후 대쉬 (2
     if(c.go && b.dash){ b.dash = 0; fxClear(); }          // 도착
     b.sc += (1-b.sc)*Math.min(1,dt*10);                    // 도착하면 원래 크기로 돌아옴
   }
-  return c.T>=c.Tc+c.dd+.8;
+  return c.T>=c.Tc+c.dd+(b.ph===2 ? .1 : .8);
 }
 function bossCollide(){
   const b = boss; if(b.air || b.over===1) return;
@@ -1643,7 +1667,7 @@ function bossUpdate(){
   }
   if(dt>0){
     if(b.cur){
-      if([null,sk1,sk2,sk3][b.cur.id](dt)){ fxClear(); b.cur = null; b.air = false; b.dash = 0; b.sc = 1; b.jy = 0; b.rx = 0; b.cd = 1.3; }
+      if([null,sk1,sk2,sk3][b.cur.id](dt)){ fxClear(); b.cur = null; b.air = false; b.dash = 0; b.sc = 1; b.jy = 0; b.rx = 0; b.cd = b.ph===2 ? 0 : 1.3; }   // 2페이즈는 패턴 사이 대기 단축
     } else if((b.cd -= dt)<=0) bossPick();
   }
   if(b.slamT<.3) b.slamT += dt;
@@ -1709,7 +1733,7 @@ cv.addEventListener('pointermove',e=>{ if(bossRot) camYawT = bossRot.yaw-(e.clie
 cv.addEventListener('pointerup',()=>{ bossRot = null; });
 cv.addEventListener('pointercancel',()=>{ bossRot = null; });
 const _tk = tick; tick = function(){
-  camK += ((boss?1.35:1)-camK)*.1;
+  camK += ((boss?1.1:1)-camK)*.1;
   _tk();
   camYaw += (camYawT-camYaw)*0.2;
   if(Math.abs(camYaw)>1e-4){
@@ -1719,7 +1743,7 @@ const _tk = tick; tick = function(){
   }
   if(boss && boss.cz>.001){                              // 2페이즈 연출: 보스 시점으로 확대
     const e = boss.cz*boss.cz*(3-2*boss.cz);
-    if(boss.ent>=0) _cp.set(boss.x+7,7.5,boss.z+8); else _cp.set(boss.x,6.5,boss.z+9);
+    if(boss.ent>=0) _cp.set(boss.x+7,7.5,boss.z+8); else _cp.set(boss.x,8.5,boss.z+12);
     camera.position.lerp(_cp,e);
     _cl.set(boss.x*e,.6*e,boss.z*e); camera.lookAt(_cl);
   }
